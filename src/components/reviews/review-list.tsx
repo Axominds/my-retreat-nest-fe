@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getUser } from "@/lib/api/users";
 import type { User } from "@/types/user";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface ReviewListProps {
   retreatId: number;
@@ -17,6 +18,7 @@ interface ReviewListProps {
 
 export function ReviewList({ retreatId }: ReviewListProps) {
   const { isAuthenticated, user: currentUser } = useAuth();
+  const router = useRouter();
   const {
     reviews,
     isLoading,
@@ -103,8 +105,8 @@ export function ReviewList({ retreatId }: ReviewListProps) {
         <h2 className="text-xl font-semibold">
           Reviews ({reviews.length})
         </h2>
-        {isAuthenticated && !existingReview && !showForm && (
-          <Button size="sm" onClick={() => setShowForm(true)}>
+        {!existingReview && !showForm && (
+          <Button size="sm" onClick={() => (isAuthenticated ? setShowForm(true) : router.push("/login"))}>
             Write a Review
           </Button>
         )}

@@ -1,8 +1,13 @@
-import { get, patch } from "@/lib/api/client";
+import { get, patch, del } from "@/lib/api/client";
 import type { User } from "@/types/user";
 
 export async function getUser(id: number): Promise<User> {
   const response = await get<User>(`/users/${id}/`);
+  return response.data;
+}
+
+export async function getUsers(): Promise<User[]> {
+  const response = await get<User[]>("/users/", { auth: true });
   return response.data;
 }
 
@@ -12,4 +17,8 @@ export async function updateUser(
 ): Promise<User> {
   const response = await patch<User>(`/users/${id}/`, payload, { auth: true });
   return response.data;
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  await del(`/users/${id}/`, { auth: true });
 }

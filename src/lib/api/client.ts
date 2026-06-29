@@ -93,3 +93,20 @@ export async function del<T>(
   });
   return parseResponse<T>(response);
 }
+
+export async function postForm<T>(
+  path: string,
+  formData: FormData,
+  options?: { auth?: boolean }
+): Promise<ApiEnvelope<T>> {
+  const headers: Record<string, string> = {};
+  if (options?.auth && accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  return parseResponse<T>(response);
+}

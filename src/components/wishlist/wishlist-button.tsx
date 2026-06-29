@@ -11,12 +11,16 @@ interface WishlistButtonProps {
   retreatId: number;
   isWishlisted: boolean;
   onToggle?: (newState: boolean) => void;
+  variant?: "ghost" | "outline";
+  className?: string;
 }
 
 export function WishlistButton({
   retreatId,
   isWishlisted,
   onToggle,
+  variant = "ghost",
+  className,
 }: WishlistButtonProps) {
   const { isAuthenticated } = useAuth();
   const { toggle, isPending } = useWishlist();
@@ -40,8 +44,9 @@ export function WishlistButton({
 
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="icon"
+      className={className}
       onClick={handleClick}
       disabled={pending}
       aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}

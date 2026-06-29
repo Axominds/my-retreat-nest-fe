@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { getRetreat } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
+import { getGalleryCategories } from "@/lib/api/gallery-categories";
 import { RetreatInfo } from "@/components/retreats/retreat-info";
 import { RetreatGallery } from "@/components/retreats/retreat-gallery";
 import { ReviewList } from "@/components/reviews/review-list";
+import { WishlistFloatingButton } from "@/components/wishlist/wishlist-floating-button";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -24,11 +26,13 @@ export default async function RetreatDetailPage({
 
   let retreat;
   let categories;
+  let galleryCategories;
 
   try {
-    [retreat, categories] = await Promise.all([
+    [retreat, categories, galleryCategories] = await Promise.all([
       getRetreat(retreatId),
       getCategories(),
+      getGalleryCategories(),
     ]);
   } catch {
     notFound();
@@ -37,7 +41,7 @@ export default async function RetreatDetailPage({
   const categoryMap = new Map(categories.map((c) => [c.category_id, c.name]));
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="container mx-auto px-4 py-8 space-y-8 relative">
       <RetreatInfo
         retreat={retreat}
         categoryName={categoryMap.get(retreat.category_id)}
@@ -54,7 +58,7 @@ export default async function RetreatDetailPage({
             ))}
           </div>
         }>
-          <RetreatGallery retreatId={retreatId} />
+          <RetreatGallery retreatId={retreatId} galleryCategories={galleryCategories} />
         </Suspense>
       </section>
 
@@ -65,6 +69,8 @@ export default async function RetreatDetailPage({
           <ReviewList retreatId={retreatId} />
         </Suspense>
       </section>
+
+      <WishlistFloatingButton retreatId={retreatId} />
     </div>
   );
 }

@@ -194,6 +194,16 @@ If a requested change might affect:
 
 then explicitly call out the risk before editing.
 
+## Rule 6 — Verify backend API contracts before implementing UI
+
+Before building any UI that calls a backend API, always:
+1. Locate the corresponding handler and **serializer** in the `my_retreat_nest_be` repo
+2. Verify the request payload fields, types, and optionality
+3. Verify the response shape (envelope, field names, types)
+4. Match the frontend API function and types exactly to the backend serializer
+
+Do **not** assume the API shape based on the frontend UI needs — read the actual backend code first.
+
 ---
 
 # 5. Non-Negotiable Restrictions
@@ -580,6 +590,18 @@ For all forms:
 - preserve user input on API validation failure
 - map backend validation errors into readable UI
 
+## Required Field Indicator
+
+Mark required fields with a **red asterisk** using `text-destructive`:
+
+```tsx
+<Label htmlFor="email">
+  Email <span className="text-destructive">*</span>
+</Label>
+```
+
+This uses the existing `--destructive` CSS variable — no new styles needed. Apply consistently across all forms (login, signup, admin CRUD, reviews, etc.).
+
 ## Common forms likely in this project
 - login form
 - signup form
@@ -653,6 +675,32 @@ Prefer breaking UI into:
 - `PaginationControls`
 
 Only create abstractions that are actually reused or meaningfully improve clarity.
+
+## Theme & Design Tokens
+
+The project uses **Tailwind CSS v4** with CSS variables defined in `src/app/globals.css`. The theme uses a **green/nature palette** (`oklch` color space, hue ~145-150°).
+
+### CSS Variable → Visual Effect Map
+
+| Variable | Light Mode (oklch) | Affects |
+|----------|--------------------|---------|
+| `--primary` | `oklch(0.42 0.13 150)` | Buttons, badges, hero bg |
+| `--primary-foreground` | `oklch(0.985 0 0)` | Text on primary backgrounds |
+| `--secondary` | `oklch(0.93 0.04 145)` | Secondary badges, less prominent surfaces |
+| `--secondary-foreground` | `oklch(0.35 0.08 150)` | Text on secondary backgrounds |
+| `--muted` | `oklch(0.95 0.03 145)` | Skeleton loaders, subtle backgrounds |
+| `--muted-foreground` | `oklch(0.55 0.04 145)` | Secondary text, hints, placeholders |
+| `--accent` | `oklch(0.88 0.06 145)` | Hover states, highlighted items |
+| `--accent-foreground` | `oklch(0.3 0.08 150)` | Text on accent backgrounds |
+| `--border` / `--input` | `oklch(0.88 0.03 145)` | Card borders, input borders, dividers |
+| `--ring` | `oklch(0.55 0.1 150)` | Focus ring on inputs/buttons |
+| `--destructive` | `oklch(0.577 0.245 27.325)` | Error states, delete actions |
+
+### Architecture
+- Colors use `oklch(L C H)` — Lightness, Chroma, Hue — for perceptually uniform curves
+- The `@theme inline` block in `globals.css` maps CSS variables → Tailwind utilities (e.g., `bg-primary`, `text-muted-foreground`)
+- Dark mode values live in `.dark` block with same hue, lower luminance
+- **Never hardcode color values in component files** — always use CSS variable-based utilities like `bg-primary`, `text-muted-foreground`, `border-border`
 
 ---
 

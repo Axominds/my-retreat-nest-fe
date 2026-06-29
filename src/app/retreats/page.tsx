@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getRetreats } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
+import { getWishlist } from "@/lib/api/wishlist";
 import { RetreatGrid } from "@/components/retreats/retreat-grid";
 import { RetreatFilters, type FilterValues } from "@/components/retreats/retreat-filters";
 import { PaginationControls } from "@/components/retreats/pagination-controls";
+import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
@@ -15,6 +18,7 @@ import type { PaginationMeta } from "@/types/api";
 export default function RetreatsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
 
   const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -28,12 +32,31 @@ export default function RetreatsPage() {
     budgetMin: "",
     budgetMax: "",
   });
+  const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     getCategories()
       .then(setCategories)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getWishlist()
+      .then((result) => {
+        if (!cancelled) {
+          setWishlistIds(new Set(result.items.map((item) => item.retreat_id)));
+        }
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -115,6 +138,26 @@ export default function RetreatsPage() {
           <RetreatGrid
             retreats={filteredRetreats}
             categories={categories}
+            renderWishlistButton={(id) => (
+              <div className="bg-background/90 rounded-full shadow-xs p-0.5">
+                <WishlistButton
+                  retreatId={id}
+                  isWishlisted={wishlistIds.has(id)}
+                  variant="outline"
+                  onToggle={(newState) => {
+                    setWishlistIds((prev) => {
+                      const next = new Set(prev);
+                      if (newState) {
+                        next.add(id);
+                      } else {
+                        next.delete(id);
+                      }
+                      return next;
+                    });
+                  }}
+                />
+              </div>
+            )}
           />
           {meta && (
             <PaginationControls meta={meta} onPageChange={setPage} />

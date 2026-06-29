@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,28 +9,60 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getRetreats } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
-import { RetreatCard } from "@/components/retreats/retreat-card";
+import { getWishlist } from "@/lib/api/wishlist";
+import { RetreatGrid } from "@/components/retreats/retreat-grid";
+import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { useAuth } from "@/hooks/use-auth";
 import type { Retreat } from "@/types/retreat";
+import type { Category } from "@/types/category";
 
-export default async function HomePage() {
-  let featuredRetreats: Retreat[] = [];
-  let categories: Awaited<ReturnType<typeof getCategories>> = [];
-  let error: string | null = null;
+export default function HomePage() {
+  const { isAuthenticated } = useAuth();
 
-  try {
-    const [retreatResult, catResult] = await Promise.all([
-      getRetreats({ page: 1, page_size: 6 }),
-      getCategories(),
-    ]);
-    featuredRetreats = retreatResult.items;
-    categories = catResult;
-  } catch {
-    error = "Failed to load data";
-  }
+  const [featuredRetreats, setFeaturedRetreats] = useState<Retreat[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
 
-  const categoryMap = new Map(categories.map((c) => [c.category_id, c.name]));
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getRetreats({ page: 1, page_size: 6 })
+      .then((result) => {
+        setFeaturedRetreats(result.items);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load data");
+        setIsLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getWishlist()
+      .then((result) => {
+        if (!cancelled) {
+          setWishlistIds(new Set(result.items.map((item) => item.retreat_id)));
+        }
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   return (
     <div>
@@ -51,25 +86,52 @@ export default async function HomePage() {
         </div>
       ) : (
         <>
-          {featuredRetreats.length > 0 && (
-            <section className="container mx-auto px-4 py-12">
-              <h2 className="text-2xl font-bold mb-6">Featured Retreats</h2>
+          <section className="container mx-auto px-4 py-12">
+            <h2 className="text-2xl font-bold mb-6">Featured Retreats</h2>
+            {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredRetreats.map((retreat) => (
-                  <RetreatCard
-                    key={retreat.retreat_id}
-                    retreat={retreat}
-                    categoryName={categoryMap.get(retreat.category_id)}
-                  />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-48 w-full rounded-lg" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
                 ))}
               </div>
-              <div className="text-center mt-8">
-                <Link href="/retreats">
-                  <Button variant="outline">View All Retreats</Button>
-                </Link>
-              </div>
-            </section>
-          )}
+            ) : featuredRetreats.length > 0 && (
+              <>
+                <RetreatGrid
+                  retreats={featuredRetreats}
+                  categories={categories}
+                  renderWishlistButton={(id) => (
+                    <div className="bg-background/90 rounded-full shadow-xs p-0.5">
+                      <WishlistButton
+                        retreatId={id}
+                        isWishlisted={wishlistIds.has(id)}
+                        variant="outline"
+                        onToggle={(newState) => {
+                          setWishlistIds((prev) => {
+                            const next = new Set(prev);
+                            if (newState) {
+                              next.add(id);
+                            } else {
+                              next.delete(id);
+                            }
+                            return next;
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                />
+                <div className="text-center mt-8">
+                  <Link href="/retreats">
+                    <Button variant="outline">View All Retreats</Button>
+                  </Link>
+                </div>
+              </>
+            )}
+          </section>
 
           {categories.length > 0 && (
             <section className="bg-muted/30 py-12">

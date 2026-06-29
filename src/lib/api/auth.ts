@@ -14,7 +14,11 @@ export async function login(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  return response.json();
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || "Login failed");
+  }
+  return json;
 }
 
 export async function register(payload: {
@@ -40,4 +44,30 @@ export async function refreshToken(): Promise<ApiEnvelope<TokenResponse>> {
 
 export async function logout(): Promise<void> {
   await fetch("/api/auth/logout", { method: "POST" });
+}
+
+export async function forgotPassword(email: string): Promise<ApiEnvelope<null>> {
+  const response = await fetch("/api/auth/forgot-password/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to send reset email");
+  }
+  return json;
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<ApiEnvelope<null>> {
+  const response = await fetch("/api/auth/reset-password/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to reset password");
+  }
+  return json;
 }

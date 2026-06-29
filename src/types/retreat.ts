@@ -29,3 +29,12 @@ export interface GalleryCategory {
   gallery_category_id: number;
   name: string;
 }
+
+export interface RetreatStaffMember {
+  retreat_user_id: number;
+  retreat_id: number;
+  user_id: number;
+  name: string;
+  email: string;
+  role: string | null;
+}
