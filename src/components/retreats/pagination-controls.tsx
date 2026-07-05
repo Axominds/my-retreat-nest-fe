@@ -28,7 +28,7 @@ export function PaginationControls({ meta, onPageChange }: PaginationControlsPro
   }
 
   return (
-    <div className="flex items-center justify-center gap-1 mt-8">
+    <div className="flex items-center justify-center gap-1">
       <Button
         variant="outline"
         size="icon"
@@ -40,7 +40,7 @@ export function PaginationControls({ meta, onPageChange }: PaginationControlsPro
 
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">
+          <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-sm">
             ...
           </span>
         ) : (

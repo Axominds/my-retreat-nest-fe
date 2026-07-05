@@ -15,13 +15,19 @@ export function RetreatGrid({ retreats, categories, renderWishlistButton }: Retr
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {retreats.map((retreat) => (
-        <RetreatCard
+      {retreats.map((retreat, index) => (
+        <div
           key={retreat.retreat_id}
-          retreat={retreat}
-          categoryName={categoryMap.get(retreat.category_id)}
-          wishlistButton={renderWishlistButton?.(retreat.retreat_id)}
-        />
+          className="animate-fade-in-up"
+          style={{ animationDelay: `${index * 80}ms` }}
+        >
+          <RetreatCard
+            retreat={retreat}
+            categoryName={categoryMap.get(retreat.category_id)}
+            wishlistButton={renderWishlistButton?.(retreat.retreat_id)}
+            index={index}
+          />
+        </div>
       ))}
     </div>
   );
