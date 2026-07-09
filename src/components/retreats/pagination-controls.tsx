@@ -28,19 +28,20 @@ export function PaginationControls({ meta, onPageChange }: PaginationControlsPro
   }
 
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex items-center justify-center gap-1.5">
       <Button
         variant="outline"
         size="icon"
         disabled={meta.page <= 1}
         onClick={() => onPageChange(meta.page - 1)}
+        className="h-9 w-9"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
 
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-sm">
+          <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-sm select-none">
             ...
           </span>
         ) : (
@@ -49,6 +50,11 @@ export function PaginationControls({ meta, onPageChange }: PaginationControlsPro
             variant={p === meta.page ? "default" : "outline"}
             size="icon"
             onClick={() => onPageChange(p)}
+            className={`h-9 w-9 transition-all duration-200 ${
+              p === meta.page
+                ? "shadow-sm scale-105"
+                : "hover:scale-105"
+            }`}
           >
             {p}
           </Button>
@@ -60,6 +66,7 @@ export function PaginationControls({ meta, onPageChange }: PaginationControlsPro
         size="icon"
         disabled={meta.page >= meta.total_pages}
         onClick={() => onPageChange(meta.page + 1)}
+        className="h-9 w-9"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>

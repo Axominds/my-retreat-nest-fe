@@ -22,6 +22,9 @@ export function useWishlist() {
         } else {
           await addToWishlist(retreatId);
         }
+      } catch (err) {
+        console.error("Wishlist API error:", err);
+        if (!currentlyWishlisted) throw err;
       } finally {
         setPendingIds((prev) => {
           const next = new Set(prev);

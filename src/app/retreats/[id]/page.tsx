@@ -8,6 +8,7 @@ import { ReviewList } from "@/components/reviews/review-list";
 import { WishlistFloatingButton } from "@/components/wishlist/wishlist-floating-button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -16,11 +17,20 @@ import {
   Phone,
   CalendarCheck,
   Share2,
+  Star,
 } from "lucide-react";
 
 interface RetreatDetailPageProps {
   params: Promise<{ id: string }>;
 }
+
+const HERO_IMAGES = [
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80",
+  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&q=80",
+  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80",
+  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80",
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80",
+];
 
 function formatBudget(min: number | null, max: number | null): string {
   if (min != null && max != null)
@@ -60,9 +70,45 @@ export default async function RetreatDetailPage({
     (c) => c.category_id === retreat.category_id
   )?.name;
   const price = formatBudget(retreat.budget_min, retreat.budget_max);
+  const heroImage = HERO_IMAGES[retreatId % HERO_IMAGES.length];
 
   return (
     <div className="min-h-screen">
+      {/* Hero Banner */}
+      <section className="relative overflow-hidden h-[40vh] md:h-[50vh]">
+        <img
+          src={heroImage}
+          alt={retreat.name}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+          <div className="container mx-auto">
+            {categoryName && (
+              <Badge className="bg-white/20 text-white border-0 mb-3 text-xs">
+                {categoryName}
+              </Badge>
+            )}
+            <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-lg">
+              {retreat.name}
+            </h1>
+            {retreat.address && (
+              <p className="text-white/70 mt-2 flex items-center gap-1.5 text-sm md:text-base">
+                <MapPin className="h-4 w-4" />
+                {retreat.address}
+              </p>
+            )}
+            {retreat.rating != null && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                <span className="text-white font-semibold">{retreat.rating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       <div className="container mx-auto px-4 py-8 lg:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
           <div className="lg:col-span-2 space-y-10">
@@ -100,7 +146,7 @@ export default async function RetreatDetailPage({
 
           <aside className="lg:col-span-1">
             <div className="lg:sticky lg:top-24 space-y-4">
-              <Card className="p-6 space-y-5">
+              <Card className="p-6 space-y-5 border shadow-sm">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
                     Price
@@ -166,7 +212,7 @@ export default async function RetreatDetailPage({
 
                 <a
                   href={`mailto:${retreat.email ?? ""}`}
-                  className="inline-flex items-center justify-center gap-2 h-9 w-full rounded-lg border border-transparent bg-primary text-primary-foreground hover:bg-primary/80 text-sm font-medium whitespace-nowrap transition-all px-2.5"
+                  className="inline-flex items-center justify-center gap-2 h-10 w-full rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 text-sm font-medium transition-all shadow-sm"
                 >
                   <CalendarCheck className="h-4 w-4" />
                   Book Now

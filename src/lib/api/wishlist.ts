@@ -19,7 +19,7 @@ export async function getWishlist(
 }
 
 export async function addToWishlist(retreatId: number): Promise<void> {
-  await post(`/users/wishlists/retreats/${retreatId}/`, undefined, {
+  await post(`/users/wishlists/retreats/${retreatId}/`, {}, {
     auth: true,
   });
 }

@@ -42,7 +42,14 @@ export function getActiveType(): string | null {
 }
 
 async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const json: ApiEnvelope<T> = await response.json();
+  if (response.status === 204) {
+    return { data: null as unknown as T, message: "", meta: null };
+  }
+  const text = await response.text();
+  if (!text) {
+    return { data: null as unknown as T, message: "", meta: null };
+  }
+  const json: ApiEnvelope<T> = JSON.parse(text);
   if (!response.ok) {
     throw new ApiError(response.status, json as unknown as ApiEnvelope<null>);
   }

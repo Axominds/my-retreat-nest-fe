@@ -1,11 +1,6 @@
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, TreePine } from "lucide-react";
+import { MapPin, TreePine, Star } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 
 interface RetreatCardProps {
@@ -13,6 +8,7 @@ interface RetreatCardProps {
   categoryName?: string;
   wishlistButton?: React.ReactNode;
   index?: number;
+  imageUrl?: string | null;
 }
 
 const GRADIENTS = [
@@ -31,64 +27,84 @@ function formatBudget(min: number | null, max: number | null): string {
   return "";
 }
 
-export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0 }: RetreatCardProps) {
+function RatingStars({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`h-3 w-3 ${i < Math.round(rating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0, imageUrl }: RetreatCardProps) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
   const price = formatBudget(retreat.budget_min, retreat.budget_max);
 
   return (
-    <Card
-      className="group overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+    <div
+      className="group relative rounded-xl overflow-hidden border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <Link href={`/retreats/${retreat.retreat_id}`}>
-        <div
-          className={`aspect-video bg-gradient-to-br ${gradient} flex items-center justify-center relative overflow-hidden`}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-          <TreePine className="h-12 w-12 text-foreground/20 group-hover:scale-110 group-hover:text-foreground/30 transition-all duration-500" />
+        <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={retreat.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+              <TreePine className="h-12 w-12 text-foreground/20 group-hover:scale-110 group-hover:text-foreground/30 transition-all duration-500" />
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent h-20 pointer-events-none" />
+          {price && (
+            <div className="absolute bottom-2.5 left-3">
+              <span className="text-sm font-semibold text-white drop-shadow-sm">{price}</span>
+            </div>
+          )}
         </div>
       </Link>
+      {wishlistButton && (
+        <div className="absolute top-2.5 right-2.5 z-10">
+          {wishlistButton}
+        </div>
+      )}
 
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 min-w-0">
-            <Link href={`/retreats/${retreat.retreat_id}`}>
-              <h3 className="font-semibold text-base leading-tight group-hover:text-primary transition-colors line-clamp-1">
-                {retreat.name}
-              </h3>
-            </Link>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {categoryName && (
-                <Badge variant="secondary" className="text-[11px] px-2 py-0">
-                  {categoryName}
-                </Badge>
-              )}
+      <div className="p-4 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Link href={`/retreats/${retreat.retreat_id}`} className="min-w-0 flex-1">
+            <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">
+              {retreat.name}
+            </h3>
+          </Link>
+          {retreat.rating != null && (
+            <div className="flex items-center gap-1 shrink-0">
+              <RatingStars rating={retreat.rating} />
+              <span className="text-xs text-muted-foreground">{retreat.rating.toFixed(1)}</span>
             </div>
-          </div>
-          {wishlistButton && <div className="shrink-0">{wishlistButton}</div>}
+          )}
+          {categoryName && (
+            <Badge variant="secondary" className="text-xs px-2.5 py-0.5 shrink-0">
+              {categoryName}
+            </Badge>
+          )}
         </div>
 
         {retreat.address && (
-          <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             <span className="line-clamp-1">{retreat.address}</span>
           </div>
         )}
-
-        {retreat.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-            {retreat.description}
-          </p>
-        )}
-      </CardContent>
-
-      {price && (
-        <CardFooter className="px-4 pb-4 pt-0">
-          <div className="flex items-baseline gap-1">
-            <span className="text-sm font-semibold text-primary">{price}</span>
-          </div>
-        </CardFooter>
-      )}
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -6,9 +6,10 @@ interface RetreatGridProps {
   retreats: Retreat[];
   categories: Category[];
   renderWishlistButton?: (retreatId: number) => React.ReactNode;
+  imageUrlMap?: Map<number, string>;
 }
 
-export function RetreatGrid({ retreats, categories, renderWishlistButton }: RetreatGridProps) {
+export function RetreatGrid({ retreats, categories, renderWishlistButton, imageUrlMap }: RetreatGridProps) {
   const categoryMap = new Map(
     categories.map((c) => [c.category_id, c.name])
   );
@@ -26,6 +27,7 @@ export function RetreatGrid({ retreats, categories, renderWishlistButton }: Retr
             categoryName={categoryMap.get(retreat.category_id)}
             wishlistButton={renderWishlistButton?.(retreat.retreat_id)}
             index={index}
+            imageUrl={imageUrlMap?.get(retreat.retreat_id)}
           />
         </div>
       ))}
