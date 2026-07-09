@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { API_BASE_URL, REFRESH_TOKEN_COOKIE_NAME, COOKIE_MAX_AGE_DAYS } from "@/lib/constants";
+import { API_BASE_URL, REFRESH_TOKEN_COOKIE_NAME, ADMIN_REFRESH_TOKEN_COOKIE_NAME, COOKIE_MAX_AGE_DAYS } from "@/lib/constants";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const { login_type } = await request.json();
+    const cookieName = login_type === "admin" ? ADMIN_REFRESH_TOKEN_COOKIE_NAME : REFRESH_TOKEN_COOKIE_NAME;
+
     const cookieStore = await cookies();
-    const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_NAME)?.value;
+    const refreshToken = cookieStore.get(cookieName)?.value;
 
     if (!refreshToken) {
       return NextResponse.json(
@@ -23,11 +26,11 @@ export async function POST() {
     const data = await response.json();
 
     if (!response.ok) {
-      cookieStore.delete(REFRESH_TOKEN_COOKIE_NAME);
+      cookieStore.delete(cookieName);
       return NextResponse.json(data, { status: response.status });
     }
 
-    cookieStore.set(REFRESH_TOKEN_COOKIE_NAME, data.data.refresh_token, {
+    cookieStore.set(cookieName, data.data.refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -36,7 +39,7 @@ export async function POST() {
     });
 
     return NextResponse.json({
-      data: { access_token: data.data.access_token, refresh_token: data.data.refresh_token },
+      data: { access_token: data.data.access_token, refresh_token: data.data.refresh_token, login_type },
       message: data.message,
       meta: null,
     });

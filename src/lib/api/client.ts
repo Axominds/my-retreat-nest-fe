@@ -13,14 +13,32 @@ export class ApiError extends Error {
   }
 }
 
-let accessToken: string | null = null;
+const tokens: Record<string, string | null> = {};
+let activeType: string | null = null;
 
-export function setAccessToken(token: string | null) {
-  accessToken = token;
+export function setAccessToken(type: string, token: string | null) {
+  tokens[type] = token;
+  if (token !== null) {
+    activeType = type;
+  } else if (activeType === type) {
+    activeType = Object.keys(tokens).find((k) => tokens[k] !== null) ?? null;
+  }
 }
 
 export function getAccessToken(): string | null {
-  return accessToken;
+  return activeType ? tokens[activeType] ?? null : null;
+}
+
+export function getAccessTokenFor(type: string): string | null {
+  return tokens[type] ?? null;
+}
+
+export function setActiveType(type: string | null) {
+  activeType = type;
+}
+
+export function getActiveType(): string | null {
+  return activeType;
 }
 
 async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
@@ -35,8 +53,9 @@ function buildHeaders(includeAuth: boolean): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (includeAuth && accessToken) {
-    headers["Authorization"] = `Bearer ${accessToken}`;
+  const token = getAccessToken();
+  if (includeAuth && token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
@@ -100,8 +119,9 @@ export async function postForm<T>(
   options?: { auth?: boolean }
 ): Promise<ApiEnvelope<T>> {
   const headers: Record<string, string> = {};
-  if (options?.auth && accessToken) {
-    headers["Authorization"] = `Bearer ${accessToken}`;
+  const token = getAccessToken();
+  if (options?.auth && token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",

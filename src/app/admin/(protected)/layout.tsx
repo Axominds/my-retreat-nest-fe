@@ -10,15 +10,23 @@ import { Menu } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading, adminUser, activeLoginType, activateSession } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+    if (adminUser && activeLoginType !== "admin") {
+      activateSession("admin");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [adminUser, activeLoginType, activateSession]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!adminUser) {
+        router.push("/admin/login");
+      }
+    }
+  }, [isLoading, adminUser, router]);
 
   if (isLoading) {
     return (
@@ -29,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!isAuthenticated) {
+  if (!adminUser) {
     return null;
   }
 

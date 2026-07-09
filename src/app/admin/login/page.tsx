@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
@@ -32,9 +31,9 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await login(email, password, "normal");
-      toast.success("Welcome back!");
-      router.push("/");
+      await login(email, password, "admin");
+      toast.success("Welcome back, admin!");
+      router.push("/admin");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Login failed";
@@ -48,9 +47,9 @@ export default function LoginPage() {
     <div className="container mx-auto px-4 py-16 flex justify-center">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Login</CardTitle>
+          <CardTitle>Admin Login</CardTitle>
           <CardDescription>
-            Sign in to your account to save retreats and write reviews.
+            Sign in with your admin account to manage retreats and users.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -88,21 +87,10 @@ export default function LoginPage() {
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <div className="flex items-center justify-end">
-              <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary">
-                Forgot password?
-              </Link>
-            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <p className="text-sm text-muted-foreground text-center mt-4">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </div>

@@ -2,16 +2,26 @@
 
 import { useEffect, useState, useRef } from "react";
 import { getGalleries, uploadGallery, deleteGallery } from "@/lib/api/retreats";
-import { getGalleryCategories } from "@/lib/api/gallery-categories";
+import {
+  getGalleryCategories,
+  createGalleryCategory,
+  deleteGalleryCategory,
+} from "@/lib/api/gallery-categories";
 import { getImageUrl } from "@/lib/constants";
 import type { RetreatGalleryItem, GalleryCategory } from "@/types/retreat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Plus, X } from "lucide-react";
 
 export function GalleryManager({ retreatId }: { retreatId: number }) {
   const [items, setItems] = useState<RetreatGalleryItem[]>([]);
@@ -21,6 +31,8 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
   const [caption, setCaption] = useState("");
   const [galleryCategoryId, setGalleryCategoryId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const fetched = useRef(false);
 
@@ -30,7 +42,7 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
 
     Promise.all([
       getGalleries(retreatId, { page_size: 100 }),
-      getGalleryCategories(),
+      getGalleryCategories(retreatId),
     ])
       .then(([g, c]) => {
         setItems(g.items);
@@ -48,7 +60,10 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
   }
 
   async function handleUpload() {
-    if (!file) { toast.error("Select an image"); return; }
+    if (!file) {
+      toast.error("Select an image");
+      return;
+    }
     setUploading(true);
 
     const formData = new FormData();
@@ -76,6 +91,37 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
       toast.success("Image deleted");
     } catch {
       toast.error("Failed to delete image");
+    }
+  }
+
+  async function handleAddCategory() {
+    const name = newCategoryName.trim();
+    if (!name) {
+      toast.error("Category name is required");
+      return;
+    }
+    try {
+      const cat = await createGalleryCategory(retreatId, { name });
+      setCategories((prev) => [...prev, cat]);
+      setNewCategoryName("");
+      setAddingCategory(false);
+      toast.success("Category added");
+    } catch {
+      toast.error("Failed to add category");
+    }
+  }
+
+  async function handleDeleteCategory(cat: GalleryCategory) {
+    if (!confirm(`Delete category "${cat.name}"?`)) return;
+    try {
+      await deleteGalleryCategory(retreatId, cat.gallery_category_id);
+      setCategories((prev) => prev.filter((c) => c.gallery_category_id !== cat.gallery_category_id));
+      if (galleryCategoryId === cat.gallery_category_id) {
+        setGalleryCategoryId(null);
+      }
+      toast.success("Category deleted");
+    } catch {
+      toast.error("Failed to delete category");
     }
   }
 
@@ -108,7 +154,11 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="gallery-caption">Caption</Label>
-              <Input id="gallery-caption" value={caption} onChange={(e) => setCaption(e.target.value)} />
+              <Input
+                id="gallery-caption"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gallery-category">Category</Label>
@@ -116,10 +166,18 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                 value={galleryCategoryId ? String(galleryCategoryId) : ""}
                 onValueChange={(v) => setGalleryCategoryId(v ? Number(v) : null)}
               >
-                <SelectTrigger id="gallery-category"><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectTrigger id="gallery-category">
+                  <SelectValue placeholder="None">
+                    {galleryCategoryId
+                      ? categories.find((c) => c.gallery_category_id === galleryCategoryId)?.name
+                      : "None"}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
-                    <SelectItem key={c.gallery_category_id} value={String(c.gallery_category_id)}>{c.name}</SelectItem>
+                    <SelectItem key={c.gallery_category_id} value={String(c.gallery_category_id)}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -128,6 +186,72 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
           <Button onClick={handleUpload} disabled={!file || uploading}>
             <Upload className="h-4 w-4 mr-2" /> {uploading ? "Uploading..." : "Upload"}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium">Categories</h2>
+            {!addingCategory && (
+              <Button variant="outline" size="sm" onClick={() => setAddingCategory(true)}>
+                <Plus className="h-3 w-3 mr-1" /> Add
+              </Button>
+            )}
+          </div>
+
+          {addingCategory && (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Category name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddCategory();
+                  if (e.key === "Escape") {
+                    setAddingCategory(false);
+                    setNewCategoryName("");
+                  }
+                }}
+                className="flex-1"
+                autoFocus
+              />
+              <Button size="sm" onClick={handleAddCategory}>
+                Save
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setAddingCategory(false);
+                  setNewCategoryName("");
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {categories.length === 0 && (
+              <p className="text-sm text-muted-foreground">No categories yet.</p>
+            )}
+            {categories.map((cat) => (
+              <span
+                key={cat.gallery_category_id}
+                className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-sm px-2.5 py-1 rounded-full"
+              >
+                {cat.name}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCategory(cat)}
+                  className="hover:text-destructive transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -153,7 +277,12 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                   {categoryName(item.gallery_category_id)}
                 </span>
               )}
-              <Button variant="ghost" size="sm" className="w-full" onClick={() => handleDelete(item)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => handleDelete(item)}
+              >
                 <Trash2 className="h-3 w-3 mr-1" /> Delete
               </Button>
             </CardContent>

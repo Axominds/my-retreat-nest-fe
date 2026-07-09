@@ -7,12 +7,13 @@ interface TokenResponse {
 
 export async function login(
   email: string,
-  password: string
+  password: string,
+  loginType: string = "normal"
 ): Promise<ApiEnvelope<{ access_token: string }>> {
   const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, login_type: loginType }),
   });
   const json = await response.json();
   if (!response.ok) {
@@ -35,15 +36,21 @@ export async function register(payload: {
   return response.json();
 }
 
-export async function refreshToken(): Promise<ApiEnvelope<TokenResponse>> {
+export async function refreshToken(loginType: string = "normal"): Promise<ApiEnvelope<TokenResponse & { login_type: string }>> {
   const response = await fetch("/api/auth/refresh", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ login_type: loginType }),
   });
   return response.json();
 }
 
-export async function logout(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST" });
+export async function logout(loginType?: string): Promise<void> {
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: loginType ? JSON.stringify({ login_type: loginType }) : undefined,
+  });
 }
 
 export async function forgotPassword(email: string): Promise<ApiEnvelope<null>> {

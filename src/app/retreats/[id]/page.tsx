@@ -49,7 +49,7 @@ export default async function RetreatDetailPage({
     [retreat, categories, galleryCategories, galleries] = await Promise.all([
       getRetreat(retreatId),
       getCategories(),
-      getGalleryCategories(),
+      getGalleryCategories(retreatId),
       getGalleries(retreatId),
     ]);
   } catch {

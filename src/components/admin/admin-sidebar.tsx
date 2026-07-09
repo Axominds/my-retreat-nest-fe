@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Tags, Image, Users } from "lucide-react";
+import { Building2, Tags, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sidebarLinks = [
   { href: "/admin/retreats", label: "Retreats", icon: Building2 },
   { href: "/admin/categories", label: "Categories", icon: Tags },
-  { href: "/admin/gallery-categories", label: "Gallery Categories", icon: Image },
   { href: "/admin/users", label: "Users", icon: Users },
 ];
 

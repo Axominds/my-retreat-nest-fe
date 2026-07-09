@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,8 +13,11 @@ const navLinks = [
 ];
 
 export function Header() {
+  const pathname = usePathname();
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
+
+  if (pathname === "/admin/login") return null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

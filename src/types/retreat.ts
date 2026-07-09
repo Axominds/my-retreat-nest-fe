@@ -28,6 +28,7 @@ export interface RetreatGalleryItem {
 export interface GalleryCategory {
   gallery_category_id: number;
   name: string;
+  retreat_id: number;
 }
 
 export interface RetreatStaffMember {
