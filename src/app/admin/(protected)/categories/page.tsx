@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { getCategories, createCategory, updateCategory, deleteCategory } from "@/lib/api/categories";
+import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryImage } from "@/lib/api/categories";
+import { getCategoryImageUrl } from "@/lib/constants";
 import type { Category } from "@/types/category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ApiError } from "@/lib/api/client";
 import { toast } from "sonner";
-import { Pencil, Trash2, X, Check, Plus } from "lucide-react";
+import { Pencil, Trash2, X, Check, Plus, Search, AlertTriangle, FolderTree, Upload, ImageIcon } from "lucide-react";
 
 export default function AdminCategoriesPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -19,9 +22,15 @@ export default function AdminCategoriesPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageRef = useRef<HTMLInputElement>(null);
   const fetched = useRef(false);
 
   useEffect(() => {
@@ -40,8 +49,17 @@ export default function AdminCategoriesPage() {
       .finally(() => setLoading(false));
   }, [authLoading, isAuthenticated]);
 
+  const filtered = useMemo(() =>
+    categories.filter((c) =>
+      !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [categories, searchQuery]
+  );
+
   function resetForm() {
     setForm({ name: "", description: "" });
+    setImageFile(null);
+    setImagePreview(null);
     setEditingId(null);
     setShowCreate(false);
   }
@@ -63,18 +81,35 @@ export default function AdminCategoriesPage() {
     try {
       const updated = await updateCategory(editingId, { name: form.name, description: form.description || null });
       setCategories((prev) => prev.map((c) => (c.category_id === editingId ? updated : c)));
-      resetForm();
       toast.success("Category updated");
+
+      if (imageFile) {
+        setUploadingImage(true);
+        try {
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          const withImage = await uploadCategoryImage(editingId, formData);
+          setCategories((prev) => prev.map((c) => (c.category_id === editingId ? withImage : c)));
+          toast.success("Image uploaded");
+        } catch (err) {
+          toast.error(err instanceof ApiError ? err.message : "Failed to upload image");
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
+      resetForm();
     } catch {
       toast.error("Failed to update category");
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this category?")) return;
+  async function handleDelete() {
+    if (!deleteTarget) return;
     try {
-      await deleteCategory(id);
-      setCategories((prev) => prev.filter((c) => c.category_id !== id));
+      await deleteCategory(deleteTarget.category_id);
+      setCategories((prev) => prev.filter((c) => c.category_id !== deleteTarget.category_id));
+      setDeleteTarget(null);
       toast.success("Category deleted");
     } catch {
       toast.error("Failed to delete category");
@@ -85,6 +120,14 @@ export default function AdminCategoriesPage() {
     setEditingId(cat.category_id);
     setShowCreate(false);
     setForm({ name: cat.name, description: cat.description ?? "" });
+    setImageFile(null);
+    setImagePreview(null);
+  }
+
+  function handleImageSelect(f: File | null) {
+    setImageFile(f);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(f ? URL.createObjectURL(f) : null);
   }
 
   if (authLoading || loading) {
@@ -96,77 +139,202 @@ export default function AdminCategoriesPage() {
     );
   }
 
+  const editingCategory = editingId ? categories.find((c) => c.category_id === editingId) : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Categories</h1>
-        {!showCreate && editingId === null && (
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" /> New Category
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Categories</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {categories.length} total
+          </p>
+        </div>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4 mr-2" /> New Category
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="bg-card border rounded-xl p-3 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-background"
+          />
+        </div>
+      </div>
+
+      {/* Create Dialog */}
+      <Dialog open={showCreate} onOpenChange={(open) => { if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Category</DialogTitle>
+            <DialogDescription>Create a new retreat category.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dlg-name">Name <span className="text-destructive">*</span></Label>
+              <Input id="dlg-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dlg-desc">Description</Label>
+              <Input id="dlg-desc" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm}><X className="h-4 w-4 mr-2" /> Cancel</Button>
+            <Button onClick={handleCreate}><Check className="h-4 w-4 mr-2" /> Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editingId !== null} onOpenChange={(open) => { if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Update the category details and image.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name <span className="text-destructive">*</span></Label>
+              <Input id="edit-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Input id="edit-desc" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Image</Label>
+              <div className="flex items-center gap-3">
+                {imagePreview ? (
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : editingCategory?.image_url ? (
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
+                    <img src={getCategoryImageUrl(editingCategory.category_id)} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <input
+                  ref={imageRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageSelect(e.target.files?.[0] ?? null)}
+                />
+                <Button variant="outline" size="sm" onClick={() => imageRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  {editingCategory?.image_url ? "Change" : "Upload"}
+                </Button>
+                {(imagePreview || editingCategory?.image_url) && (
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm}><X className="h-4 w-4 mr-2" /> Cancel</Button>
+            <Button onClick={handleUpdate} disabled={uploadingImage}>
+              <Check className="h-4 w-4 mr-2" /> {uploadingImage ? "Uploading..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Category
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-2" /> Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Categories List */}
+      {categories.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
+            <FolderTree className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold">No categories yet</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            Create your first category to organize retreats.
+          </p>
+          <Button onClick={() => setShowCreate(true)} className="mt-6">
+            <Plus className="h-4 w-4 mr-2" /> Create Your First Category
           </Button>
-        )}
-      </div>
-
-      {showCreate && (
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
-                <Input id="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
+            <Search className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold">No categories match your search</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            Try a different search term.
+          </p>
+          <Button variant="outline" onClick={() => setSearchQuery("")} className="mt-6">
+            <X className="h-4 w-4 mr-2" /> Clear Search
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((cat) => (
+            <div
+              key={cat.category_id}
+              className="group flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200"
+            >
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
+                {cat.image_url ? (
+                  <img src={getCategoryImageUrl(cat.category_id)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FolderTree className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="desc">Description</Label>
-                <Input id="desc" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{cat.name}</p>
+                {cat.description && (
+                  <p className="text-sm text-muted-foreground mt-0.5">{cat.description}</p>
+                )}
+              </div>
+              <div className="flex gap-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" onClick={() => startEdit(cat)} className="h-8 w-8">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(cat)} className="h-8 w-8 hover:text-destructive">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleCreate}><Check className="h-4 w-4 mr-2" /> Create</Button>
-              <Button variant="outline" onClick={resetForm}><X className="h-4 w-4 mr-2" /> Cancel</Button>
-            </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
-
-      <div className="space-y-3">
-        {categories.map((cat) => (
-          <Card key={cat.category_id}>
-            <CardContent className="pt-6">
-              {editingId === cat.category_id ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Name <span className="text-destructive">*</span></Label>
-                      <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleUpdate}><Check className="h-4 w-4 mr-2" /> Save</Button>
-                    <Button variant="outline" onClick={resetForm}><X className="h-4 w-4 mr-2" /> Cancel</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <span className="font-medium">{cat.name}</span>
-                    {cat.description && (
-                      <p className="text-sm text-muted-foreground">{cat.description}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => startEdit(cat)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.category_id)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

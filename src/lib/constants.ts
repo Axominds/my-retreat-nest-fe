@@ -8,3 +8,7 @@ export const COOKIE_MAX_AGE_DAYS = 30;
 export function getImageUrl(retreatId: number, galleryId: number): string {
   return `${API_BASE_URL}/retreats/${retreatId}/galleries/${galleryId}/image/`;
 }
+
+export function getCategoryImageUrl(categoryId: number): string {
+  return `${API_BASE_URL}/categories/${categoryId}/image/`;
+}

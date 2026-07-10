@@ -1,4 +1,4 @@
-import { get, post, patch, del } from "@/lib/api/client";
+import { get, post, patch, del, postForm } from "@/lib/api/client";
 import type { Category } from "@/types/category";
 
 export async function getCategories(): Promise<Category[]> {
@@ -18,4 +18,9 @@ export async function updateCategory(id: number, payload: { name?: string; descr
 
 export async function deleteCategory(id: number): Promise<void> {
   await del(`/categories/${id}/`, { auth: true });
+}
+
+export async function uploadCategoryImage(id: number, formData: FormData): Promise<Category> {
+  const response = await postForm<Category>(`/categories/${id}/image/`, formData, { auth: true });
+  return response.data;
 }

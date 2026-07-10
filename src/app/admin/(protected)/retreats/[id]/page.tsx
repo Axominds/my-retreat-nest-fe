@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Image, Users, Info } from "lucide-react";
+import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { GalleryManager } from "@/components/admin/gallery-manager";
 import { StaffManager } from "@/components/admin/staff-manager";
 
@@ -40,7 +40,13 @@ export default function AdminRetreatDetailPage() {
     social_links_instagram: "", social_links_facebook: "",
     is_published: true,
   });
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [showMapFields, setShowMapFields] = useState(false);
   const fetched = useRef(false);
+
+  const slugify = useCallback((val: string) =>
+    val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
+  []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -78,6 +84,14 @@ export default function AdminRetreatDetailPage() {
       .finally(() => setLoading(false));
   }, [authLoading, isAuthenticated, retreatId]);
 
+  function handleNameChange(val: string) {
+    setForm((f) => ({
+      ...f,
+      name: val,
+      slug: slugManuallyEdited ? f.slug : slugify(val),
+    }));
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -112,7 +126,10 @@ export default function AdminRetreatDetailPage() {
   if (authLoading || loading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <Skeleton className="h-8 w-48" />
+        </div>
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
@@ -120,9 +137,13 @@ export default function AdminRetreatDetailPage() {
 
   if (!retreat) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Retreat not found</p>
-        <Link href="/admin/retreats" className="text-primary hover:underline mt-2 inline-block">Back to retreats</Link>
+      <div className="text-center py-16">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mx-auto mb-4">
+          <Info className="h-7 w-7 text-muted-foreground" />
+        </div>
+        <p className="text-lg font-semibold">Retreat not found</p>
+        <p className="text-sm text-muted-foreground mt-1">This retreat may have been deleted.</p>
+        <Link href="/admin/retreats" className="text-primary hover:underline mt-4 inline-block font-medium">Back to retreats</Link>
       </div>
     );
   }
@@ -137,13 +158,28 @@ export default function AdminRetreatDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/admin/retreats">
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
         </Link>
-        <h1 className="text-2xl font-bold">{retreat.name}</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold truncate">{retreat.name}</h1>
+        </div>
+        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
+            {categoryName(retreat.category_id)}
+          </span>
+        <Link href={`/retreats/${retreat.retreat_id}`} target="_blank">
+          <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+            <ExternalLink className="h-3.5 w-3.5" />
+            Preview
+          </Button>
+        </Link>
       </div>
 
+      {/* Tabs */}
       <div className="flex gap-1 border-b">
         {tabs.map((t) => {
           const Icon = t.icon;
@@ -152,7 +188,7 @@ export default function AdminRetreatDetailPage() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 tab === t.key
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -166,96 +202,199 @@ export default function AdminRetreatDetailPage() {
       </div>
 
       {tab === "info" && (
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
-                <Input id="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
-                <Input id="slug" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
-                <Select value={String(form.category_id)} onValueChange={(v) => setForm((f) => ({ ...f, category_id: Number(v) }))}>
-                  <SelectTrigger id="category"><SelectValue placeholder="Select category">{categoryName(form.category_id) || "Select category"}</SelectValue></SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.category_id} value={String(c.category_id)}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input id="latitude" type="number" step="any" value={form.latitude} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input id="longitude" type="number" step="any" value={form.longitude} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget_min">Budget Min</Label>
-                <Input id="budget_min" type="number" step="0.01" value={form.budget_min} onChange={(e) => setForm((f) => ({ ...f, budget_min: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget_max">Budget Max</Label>
-                <Input id="budget_max" type="number" step="0.01" value={form.budget_max} onChange={(e) => setForm((f) => ({ ...f, budget_max: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="social_instagram">Instagram URL</Label>
-                <Input id="social_instagram" placeholder="https://instagram.com/..." value={form.social_links_instagram} onChange={(e) => setForm((f) => ({ ...f, social_links_instagram: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="social_facebook">Facebook URL</Label>
-                <Input id="social_facebook" placeholder="https://facebook.com/..." value={form.social_links_facebook} onChange={(e) => setForm((f) => ({ ...f, social_links_facebook: e.target.value }))} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <textarea
-                  id="description"
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Status</Label>
-                <button
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, is_published: !f.is_published }))}
-                  className={`text-xs px-3 py-1.5 rounded font-medium ${form.is_published ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
-                >
-                  {form.is_published ? "Published" : "Draft"}
-                </button>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" /> {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div key="info-tab" className="animate-fade-in-up grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Contact & Location, Pricing, Social Links */}
+          <div className="lg:col-span-2 space-y-6">
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Contact & Location
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">
+                      <Mail className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Email
+                    </Label>
+                    <Input id="email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">
+                      <Phone className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Phone
+                    </Label>
+                    <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="address">
+                      <MapPin className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Address
+                    </Label>
+                    <Input id="address" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowMapFields(!showMapFields)}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showMapFields ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      Coordinates
+                    </button>
+                    {showMapFields && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="latitude">Latitude</Label>
+                          <Input id="latitude" type="number" step="any" value={form.latitude} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="longitude">Longitude</Label>
+                          <Input id="longitude" type="number" step="any" value={form.longitude} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
+                        </div>
+                        {form.latitude && form.longitude && (
+                          <div className="md:col-span-2">
+                            <a
+                              href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                              <MapPin className="h-3 w-3" />
+                              View on Google Maps
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  Pricing
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="budget_min">
+                      <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Budget Min
+                    </Label>
+                    <Input id="budget_min" type="number" step="0.01" value={form.budget_min} onChange={(e) => setForm((f) => ({ ...f, budget_min: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget_max">
+                      <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Budget Max
+                    </Label>
+                    <Input id="budget_max" type="number" step="0.01" value={form.budget_max} onChange={(e) => setForm((f) => ({ ...f, budget_max: e.target.value }))} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  Social Links
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="social_instagram">
+                      <Globe className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Instagram URL
+                    </Label>
+                    <Input id="social_instagram" placeholder="https://instagram.com/..." value={form.social_links_instagram} onChange={(e) => setForm((f) => ({ ...f, social_links_instagram: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="social_facebook">
+                      <Globe className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      Facebook URL
+                    </Label>
+                    <Input id="social_facebook" placeholder="https://facebook.com/..." value={form.social_links_facebook} onChange={(e) => setForm((f) => ({ ...f, social_links_facebook: e.target.value }))} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right: Basic Information + Save */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
+                  <Select value={String(form.category_id)} onValueChange={(v) => setForm((f) => ({ ...f, category_id: Number(v) }))}>
+                    <SelectTrigger id="category"><SelectValue placeholder="Select category">{form.category_id ? categoryName(form.category_id) : "Select category"}</SelectValue></SelectTrigger>
+                    <SelectContent side="bottom" align="start">
+                      {categories.map((c) => (
+                        <SelectItem key={c.category_id} value={String(c.category_id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
+                  <Input id="name" value={form.name} onChange={(e) => handleNameChange(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
+                  <Input id="slug" value={form.slug} onChange={(e) => { setSlugManuallyEdited(true); setForm((f) => ({ ...f, slug: e.target.value })); }} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, is_published: !f.is_published }))}
+                    className={`text-xs px-3 py-1.5 rounded font-medium ${form.is_published ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                  >
+                    {form.is_published ? "Published" : "Draft"}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <textarea
+                    id="description"
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+                <Button onClick={handleSave} disabled={saving} className="w-full mt-4">
+                  <Save className="h-4 w-4 mr-2" /> {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
 
-      {tab === "gallery" && <GalleryManager retreatId={retreatId} />}
+      {tab === "gallery" && (
+        <div key="gallery-tab" className="animate-fade-in-up">
+          <GalleryManager retreatId={retreatId} />
+        </div>
+      )}
 
-      {tab === "staff" && <StaffManager retreatId={retreatId} />}
+      {tab === "staff" && (
+        <div key="staff-tab" className="animate-fade-in-up">
+          <StaffManager retreatId={retreatId} />
+        </div>
+      )}
     </div>
   );
 }

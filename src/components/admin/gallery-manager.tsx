@@ -198,133 +198,136 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Upload Card */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-lg">Upload Image</h2>
-          </div>
+    <div className="flex flex-col lg:flex-row gap-6 items-start">
+      {/* Left column: Upload + Categories (25%) */}
+      <div className="w-full lg:w-1/4 space-y-4">
 
-          <div
-            ref={dropRef}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              const f = e.dataTransfer.files?.[0];
-              if (f?.type.startsWith("image/")) {
-                handleFileSelect(f);
-              } else {
-                toast.error("Please drop an image file");
-              }
-            }}
-            onClick={() => fileRef.current?.click()}
-            className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              dragOver
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50 hover:bg-muted/50"
-            }`}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
-            />
-            {previewUrl ? (
-              <div className="space-y-3">
-                <div className="relative mx-auto max-w-[200px] aspect-video rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
+        {/* Upload Card */}
+        <Card>
+          <CardContent className="pt-3 pb-3 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <Upload className="h-3.5 w-3.5 text-primary" />
+              <h2 className="font-semibold text-sm">Upload Image</h2>
+            </div>
+
+            <div
+              ref={dropRef}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f?.type.startsWith("image/")) {
+                  handleFileSelect(f);
+                } else {
+                  toast.error("Please drop an image file");
+                }
+              }}
+              onClick={() => fileRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                dragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+              }`}
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+              />
+              {previewUrl ? (
+                <div className="space-y-1.5">
+                  <div className="relative mx-auto max-w-[120px] aspect-video rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); resetUpload(); }}
+                      className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">{file?.name}</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="mx-auto w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <p className="text-[11px] font-medium leading-tight">
+                    Drop or click to browse
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    JPEG, PNG, WebP
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {file && (
+              <div className="space-y-1.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium">Caption</label>
+                  <Input
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    placeholder="Optional caption..."
+                    className="h-8 text-xs"
                   />
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); resetUpload(); }}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium">Category</label>
+                  <select
+                    value={galleryCategoryId ?? ""}
+                    onChange={(e) =>
+                      setGalleryCategoryId(e.target.value ? Number(e.target.value) : null)
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
+                    <option value="">No category</option>
+                    {categories.map((c) => (
+                      <option key={c.gallery_category_id} value={c.gallery_category_id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <p className="text-sm text-muted-foreground">{file?.name}</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Upload className="h-6 w-6 text-primary" />
-                </div>
-                <p className="text-sm font-medium">
-                  Drop an image here or click to browse
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  JPEG, PNG, WebP up to 10MB
-                </p>
+                <Button onClick={handleUpload} disabled={!file || uploading} size="sm" className="h-8 w-full text-xs">
+                  <Upload className="h-3 w-3 mr-1.5" />
+                  {uploading ? "Uploading..." : "Upload"}
+                </Button>
               </div>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-          {file && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Caption</label>
-                <Input
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  placeholder="Optional caption..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <select
-                  value={galleryCategoryId ?? ""}
-                  onChange={(e) =>
-                    setGalleryCategoryId(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">No category</option>
-                  {categories.map((c) => (
-                    <option key={c.gallery_category_id} value={c.gallery_category_id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          <Button onClick={handleUpload} disabled={!file || uploading}>
-            <Upload className="h-4 w-4 mr-2" />
-            {uploading ? "Uploading..." : "Upload"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Categories Card */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+        {/* Categories Card */}
+        <Card>
+          <CardContent className="pt-4 pb-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-lg">Categories</h2>
-              <Badge variant="secondary" className="ml-1">
+              <FolderOpen className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold text-sm">Categories</h2>
+              <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                 {categories.length}
-              </Badge>
+              </span>
             </div>
             {!addingCategory && (
-              <Button variant="outline" size="sm" onClick={() => setAddingCategory(true)}>
-                <Plus className="h-3 w-3 mr-1" /> Add
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setAddingCategory(true)}>
+                <Plus className="h-3 w-3" /> Add
               </Button>
             )}
           </div>
 
           {addingCategory && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Input
                 placeholder="Category name"
                 value={newCategoryName}
@@ -336,46 +339,47 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                     setNewCategoryName("");
                   }
                 }}
-                className="flex-1"
+                className="flex-1 h-8 text-xs"
                 autoFocus
               />
-              <Button size="sm" onClick={handleAddCategory}>
+              <Button size="sm" className="h-8 text-xs" onClick={handleAddCategory}>
                 Save
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-8 w-8 p-0"
                 onClick={() => {
                   setAddingCategory(false);
                   setNewCategoryName("");
                 }}
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           )}
 
           {categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No categories yet. Group your images by creating a category.
+            <p className="text-xs text-muted-foreground">
+              No categories yet.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {categories.map((cat) => (
                 <span
                   key={cat.gallery_category_id}
-                  className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-sm px-3 py-1.5 rounded-full"
+                  className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full"
                 >
                   {cat.name}
-                  <span className="text-xs text-primary/60 ml-0.5">
+                  <span className="text-[10px] text-primary/60">
                     ({categoryCount(cat.gallery_category_id)})
                   </span>
                   <button
                     type="button"
                     onClick={() => handleDeleteCategory(cat)}
-                    className="hover:text-destructive transition-colors ml-0.5"
+                    className="hover:text-destructive transition-colors"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-2.5 w-2.5" />
                   </button>
                 </span>
               ))}
@@ -384,16 +388,24 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
         </CardContent>
       </Card>
 
-      {/* Stats + Filter */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      </div>
+
+      {/* Right column: Gallery (75%) */}
+      <div className="w-full lg:w-3/4 space-y-4">
+
+        {/* Stats + Filter */}
+      <div className="bg-card border rounded-xl p-3 shadow-sm flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <ImageIcon className="h-4 w-4" />
-            <span>{items.length} image{items.length !== 1 ? "s" : ""}</span>
+            <span className="font-medium text-foreground">{items.length}</span>
+            <span>image{items.length !== 1 ? "s" : ""}</span>
           </div>
+          <span className="text-muted-foreground/30">|</span>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <FolderOpen className="h-4 w-4" />
-            <span>{categories.length} categor{categories.length !== 1 ? "ies" : "y"}</span>
+            <span className="font-medium text-foreground">{categories.length}</span>
+            <span>categor{categories.length !== 1 ? "ies" : "y"}</span>
           </div>
         </div>
 
@@ -403,11 +415,12 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
               onClick={() => setSelectedCategory(null)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 selectedCategory === null
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/30"
               }`}
             >
-              All ({items.length})
+              All
+              <span className="ml-1 text-[11px] opacity-80">({items.length})</span>
             </button>
             {categories.map((cat) => (
               <button
@@ -415,11 +428,12 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                 onClick={() => setSelectedCategory(cat.gallery_category_id)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   selectedCategory === cat.gallery_category_id
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:bg-muted"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/30"
                 }`}
               >
-                {cat.name} ({categoryCount(cat.gallery_category_id)})
+                {cat.name}
+                <span className="ml-1 text-[11px] opacity-80">({categoryCount(cat.gallery_category_id)})</span>
               </button>
             ))}
           </div>
@@ -499,7 +513,8 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      </div>
+
       {deleteConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"

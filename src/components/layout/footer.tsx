@@ -67,6 +67,9 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} My Retreat Nest. All rights reserved.
           </p>
+          <p className="text-sm text-muted-foreground">
+            Powered by <a href="https://axominds.com/" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:text-primary transition-colors">Axominds Pvt Ltd</a>
+          </p>
         </div>
       </div>
     </footer>
