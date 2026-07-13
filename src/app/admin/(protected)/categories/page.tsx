@@ -275,6 +275,7 @@ export default function AdminCategoriesPage() {
       </Dialog>
 
       {/* Categories List */}
+      <div className="overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
       {categories.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
@@ -335,6 +336,7 @@ export default function AdminCategoriesPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

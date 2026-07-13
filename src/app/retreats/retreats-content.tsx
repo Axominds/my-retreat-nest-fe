@@ -144,9 +144,10 @@ export default function RetreatsPage() {
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/90 via-primary to-emerald-800">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08)_0%,transparent_60%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(255,255,255,0.05)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         <div className="container mx-auto px-4 py-14 lg:py-16 relative">
           <div className="grid lg:grid-cols-5 gap-8 items-start">
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3 lg:pr-6">
               <div className="flex items-center gap-3 mb-4 animate-fade-in-up">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
                   <Mountain className="h-4 w-4 text-white" />
@@ -156,13 +157,13 @@ export default function RetreatsPage() {
                 </span>
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-white animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-                Retreats
+                Find your perfect retreat
               </h1>
-              <p className="text-lg text-white/80 mt-3 max-w-lg animate-fade-in-up" style={{ animationDelay: "160ms" }}>
-                Explore handpicked retreats for your next getaway. Find peace, adventure, and renewal.
+              <p className="text-lg text-white/80 mt-3 max-w-xl animate-fade-in-up" style={{ animationDelay: "160ms" }}>
+                Explore handpicked retreats for your next getaway. Search by name, category, budget, or amenities — your ideal escape is just a click away.
               </p>
               {meta && (
-                <div className="flex items-center gap-4 mt-6 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
+                <div className="flex flex-wrap items-center gap-3 mt-6 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
                   <div className="flex items-center gap-1.5 text-xs text-white/60">
                     <Sparkles className="h-3.5 w-3.5" />
                     <span>{meta.total} retreat{meta.total !== 1 ? "s" : ""} available</span>
@@ -177,7 +178,7 @@ export default function RetreatsPage() {
             </div>
 
             <div className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: "120ms" }}>
-              <div className="bg-white/25 backdrop-blur-xl rounded-xl border border-white/30 shadow-xl">
+              <div className="bg-white/25 backdrop-blur-xl rounded-xl border border-white/30 shadow-xl shadow-black/5">
                 <RetreatFilters categories={categories} onFilterChange={handleFilterChange} variant="hero" />
               </div>
             </div>

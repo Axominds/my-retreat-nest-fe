@@ -82,6 +82,15 @@ export async function uploadGallery(
   return response.data;
 }
 
+export async function updateGallery(
+  retreatId: number,
+  galleryId: number,
+  payload: { caption?: string; gallery_category_id?: number | null }
+): Promise<RetreatGalleryItem> {
+  const response = await patch<RetreatGalleryItem>(`/retreats/${retreatId}/galleries/${galleryId}/`, payload, { auth: true });
+  return response.data;
+}
+
 export async function deleteGallery(retreatId: number, galleryId: number): Promise<void> {
   await del(`/retreats/${retreatId}/galleries/${galleryId}/`, { auth: true });
 }

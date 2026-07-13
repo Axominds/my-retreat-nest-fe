@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Search, AlertTriangle, UsersIcon, X, Mail, Phone, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trash2, Search, AlertTriangle, UsersIcon, X, Mail, Phone, Shield, ArrowUpDown } from "lucide-react";
 
 export default function AdminUsersPage() {
   const { isAuthenticated, isLoading: authLoading, user: currentUser } = useAuth();
@@ -19,6 +20,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loginTypeFilter, setLoginTypeFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState<"name" | "newest">("newest");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const fetched = useRef(false);
 
@@ -38,14 +41,17 @@ export default function AdminUsersPage() {
       .finally(() => setLoading(false));
   }, [authLoading, isAuthenticated]);
 
-  const filtered = useMemo(() =>
-    users.filter((u) => {
+  const filtered = useMemo(() => {
+    let result = users.filter((u) => {
+      if (loginTypeFilter !== "all" && u.login_type !== loginTypeFilter) return false;
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-    }),
-    [users, searchQuery]
-  );
+    });
+    if (sortOrder === "name") result.sort((a, b) => a.name.localeCompare(b.name));
+    else result.sort((a, b) => b.user_id - a.user_id);
+    return result;
+  }, [users, searchQuery, loginTypeFilter, sortOrder]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -89,16 +95,41 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search + Filters */}
       <div className="bg-card border rounded-xl p-3 shadow-sm">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background"
-          />
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-background"
+            />
+          </div>
+          <div className="flex gap-2.5">
+            <Select value={loginTypeFilter} onValueChange={(v) => setLoginTypeFilter(v)}>
+              <SelectTrigger className="w-32 bg-background">
+                <Shield className="h-3.5 w-3.5 mr-2" />
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent side="bottom" align="start">
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="google">Google</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as typeof sortOrder)}>
+              <SelectTrigger className="w-32 bg-background">
+                <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent side="bottom" align="start">
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="name">Name A-Z</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -124,6 +155,7 @@ export default function AdminUsersPage() {
       </Dialog>
 
       {/* Users List */}
+      <div className="overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
@@ -191,6 +223,7 @@ export default function AdminUsersPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

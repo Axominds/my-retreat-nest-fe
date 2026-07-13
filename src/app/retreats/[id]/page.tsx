@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { getRetreat, getGalleries } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
 import { getGalleryCategories } from "@/lib/api/gallery-categories";
-import { RetreatInfo } from "@/components/retreats/retreat-info";
 import { RetreatGallery } from "@/components/retreats/retreat-gallery";
 import { ReviewList } from "@/components/reviews/review-list";
 import { WishlistFloatingButton } from "@/components/wishlist/wishlist-floating-button";
@@ -18,6 +17,12 @@ import {
   CalendarCheck,
   Share2,
   Star,
+  Coffee,
+  Ban,
+  CreditCard,
+  ImageIcon,
+  MessageSquare,
+  Info,
 } from "lucide-react";
 
 interface RetreatDetailPageProps {
@@ -112,12 +117,62 @@ export default async function RetreatDetailPage({
       <div className="container mx-auto px-4 py-8 lg:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
           <div className="lg:col-span-2 space-y-10">
-            <RetreatInfo retreat={retreat} categoryName={categoryName} />
+
+            {/* Highlights / Amenities */}
+            {(retreat.breakfast_included != null || retreat.free_cancellation != null || retreat.payment_type) && (
+              <section>
+                <div className="flex flex-wrap gap-2.5">
+                  {retreat.breakfast_included && (
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-primary/5 text-primary text-xs font-medium">
+                      <Coffee className="h-3.5 w-3.5" />
+                      Breakfast included
+                    </div>
+                  )}
+                  {retreat.free_cancellation && (
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-medium">
+                      <Ban className="h-3.5 w-3.5" />
+                      Free cancellation
+                    </div>
+                  )}
+                  {retreat.payment_type && (
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200 text-xs font-medium">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      {retreat.payment_type === "full"
+                        ? "Pay in full"
+                        : retreat.payment_type === "partial"
+                        ? "Partial payment"
+                        : retreat.payment_type}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Description */}
+            {retreat.description && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                    <Info className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h2 className="text-lg font-semibold">About this retreat</h2>
+                </div>
+                <div className="text-muted-foreground leading-relaxed whitespace-pre-line pl-9">
+                  {retreat.description}
+                </div>
+              </section>
+            )}
 
             <Separator />
 
+            {/* Gallery */}
             <section>
-              <h2 className="text-lg font-semibold mb-4">Gallery</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold">Gallery</h2>
+              </div>
               <Suspense
                 fallback={
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -137,7 +192,14 @@ export default async function RetreatDetailPage({
 
             <Separator />
 
+            {/* Reviews */}
             <section>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold">Reviews</h2>
+              </div>
               <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
                 <ReviewList retreatId={retreatId} />
               </Suspense>
@@ -146,10 +208,10 @@ export default async function RetreatDetailPage({
 
           <aside className="lg:col-span-1">
             <div className="lg:sticky lg:top-24 space-y-4">
-              <Card className="p-6 space-y-5 border shadow-sm">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                    Price
+              <Card className="overflow-hidden border shadow-sm">
+                <div className="bg-primary/5 px-6 py-4 border-b">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">
+                    Pricing
                   </p>
                   {price ? (
                     <p className="text-2xl font-bold text-primary">{price}</p>
@@ -158,21 +220,23 @@ export default async function RetreatDetailPage({
                   )}
                 </div>
 
-                <Separator />
-
-                <div className="space-y-3">
+                <div className="p-6 space-y-4">
                   {retreat.address && (
                     <div className="flex items-start gap-3 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                      <span>{retreat.address}</span>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <span className="mt-1">{retreat.address}</span>
                     </div>
                   )}
                   {retreat.email && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                       <a
                         href={`mailto:${retreat.email}`}
-                        className="hover:underline text-primary"
+                        className="hover:underline text-primary truncate"
                       >
                         {retreat.email}
                       </a>
@@ -180,27 +244,26 @@ export default async function RetreatDetailPage({
                   )}
                   {retreat.phone && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                       <span>{retreat.phone}</span>
                     </div>
                   )}
 
                   {retreat.social_links &&
                     Object.entries(retreat.social_links)
-                      .filter(
-                        ([, v]) => typeof v === "string" && v.length > 0
-                      )
+                      .filter(([, v]) => typeof v === "string" && v.length > 0)
                       .map(([key, url]) => (
-                        <div
-                          key={key}
-                          className="flex items-center gap-3 text-sm"
-                        >
-                          <Share2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div key={key} className="flex items-center gap-3 text-sm">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
                           <a
                             href={String(url)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:underline text-primary capitalize"
+                            className="hover:underline text-primary capitalize truncate"
                           >
                             {key}
                           </a>
@@ -208,15 +271,15 @@ export default async function RetreatDetailPage({
                       ))}
                 </div>
 
-                <Separator />
-
-                <a
-                  href={`mailto:${retreat.email ?? ""}`}
-                  className="inline-flex items-center justify-center gap-2 h-10 w-full rounded-lg bg-primary text-primary-foreground hover:bg-primary/80 text-sm font-medium transition-all shadow-sm"
-                >
-                  <CalendarCheck className="h-4 w-4" />
-                  Book Now
-                </a>
+                <div className="px-6 pb-6">
+                  <a
+                    href={`mailto:${retreat.email ?? ""}`}
+                    className="inline-flex items-center justify-center gap-2 h-11 w-full rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-all shadow-sm"
+                  >
+                    <CalendarCheck className="h-4 w-4" />
+                    Book Now
+                  </a>
+                </div>
               </Card>
             </div>
           </aside>

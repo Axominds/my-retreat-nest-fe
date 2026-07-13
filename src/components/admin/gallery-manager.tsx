@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { getGalleries, uploadGallery, deleteGallery } from "@/lib/api/retreats";
+import { getGalleries, uploadGallery, updateGallery, deleteGallery } from "@/lib/api/retreats";
 import {
   getGalleryCategories,
   createGalleryCategory,
+  updateGalleryCategory,
   deleteGalleryCategory,
 } from "@/lib/api/gallery-categories";
 import { getImageUrl } from "@/lib/constants";
@@ -42,6 +43,10 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<RetreatGalleryItem | null>(null);
+  const [changingCategoryId, setChangingCategoryId] = useState<number | null>(null);
+  const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<GalleryCategory | null>(null);
+  const [editingCatId, setEditingCatId] = useState<number | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -137,21 +142,41 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
     }
   }
 
-  async function handleDeleteCategory(cat: GalleryCategory) {
-    if (!confirm(`Delete category "${cat.name}"? This won't delete the images.`)) return;
+  async function handleDeleteCategory() {
+    if (!deleteCategoryTarget) return;
     try {
-      await deleteGalleryCategory(retreatId, cat.gallery_category_id);
-      setCategories((prev) => prev.filter((c) => c.gallery_category_id !== cat.gallery_category_id));
-      if (galleryCategoryId === cat.gallery_category_id) setGalleryCategoryId(null);
-      if (selectedCategory === cat.gallery_category_id) setSelectedCategory(null);
+      await deleteGalleryCategory(retreatId, deleteCategoryTarget.gallery_category_id);
+      setCategories((prev) => prev.filter((c) => c.gallery_category_id !== deleteCategoryTarget.gallery_category_id));
+      setItems((prev) => prev.map((i) =>
+        i.gallery_category_id === deleteCategoryTarget.gallery_category_id
+          ? { ...i, gallery_category_id: null }
+          : i
+      ));
+      if (galleryCategoryId === deleteCategoryTarget.gallery_category_id) setGalleryCategoryId(null);
+      if (selectedCategory === deleteCategoryTarget.gallery_category_id) setSelectedCategory(null);
+      setDeleteCategoryTarget(null);
       toast.success("Category deleted");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to delete category");
     }
   }
 
+  async function handleUpdateCategory(cat: GalleryCategory, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed) { toast.error("Name is required"); return; }
+    try {
+      const updated = await updateGalleryCategory(retreatId, cat.gallery_category_id, { name: trimmed });
+      setCategories((prev) => prev.map((c) => (c.gallery_category_id === updated.gallery_category_id ? updated : c)));
+      setEditingCatId(null);
+      setEditingCatName("");
+      toast.success("Category updated");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to update category");
+    }
+  }
+
   const categoryName = (id: number | null) =>
-    id ? categories.find((c) => c.gallery_category_id === id)?.name ?? `Category ${id}` : null;
+    id ? categories.find((c) => c.gallery_category_id === id)?.name ?? null : null;
 
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
@@ -332,6 +357,7 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                 placeholder="Category name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
+                maxLength={20}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddCategory();
                   if (e.key === "Escape") {
@@ -366,22 +392,48 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {categories.map((cat) => (
-                <span
-                  key={cat.gallery_category_id}
-                  className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full"
-                >
-                  {cat.name}
-                  <span className="text-[10px] text-primary/60">
-                    ({categoryCount(cat.gallery_category_id)})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCategory(cat)}
-                    className="hover:text-destructive transition-colors"
+                editingCatId === cat.gallery_category_id ? (
+                  <div key={cat.gallery_category_id} className="flex items-center gap-1 w-full">
+                    <Input
+                      value={editingCatName}
+                      onChange={(e) => setEditingCatName(e.target.value)}
+                      maxLength={20}
+                      className="flex-1 h-7 text-xs"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleUpdateCategory(cat, editingCatName);
+                        if (e.key === "Escape") { setEditingCatId(null); setEditingCatName(""); }
+                      }}
+                    />
+                    <Button size="sm" className="h-7 text-xs px-2" onClick={() => handleUpdateCategory(cat, editingCatName)}>Save</Button>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditingCatId(null); setEditingCatName(""); }}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span
+                    key={cat.gallery_category_id}
+                    className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full group/chip"
                   >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </span>
+                    <button
+                      type="button"
+                      onClick={() => { setEditingCatId(cat.gallery_category_id); setEditingCatName(cat.name); }}
+                      className="hover:underline"
+                    >
+                      {cat.name}
+                    </button>
+                    <span className="text-[10px] text-primary/60">
+                      ({categoryCount(cat.gallery_category_id)})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteCategoryTarget(cat)}
+                      className="hover:text-destructive transition-colors"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </span>
+                )
               ))}
             </div>
           )}
@@ -410,30 +462,36 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
         </div>
 
         {items.length > 0 && categories.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 selectedCategory === null
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/30"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground bg-muted/50 hover:bg-muted hover:text-foreground"
               }`}
             >
+              <ImageIcon className="h-3.5 w-3.5" />
               All
-              <span className="ml-1 text-[11px] opacity-80">({items.length})</span>
+              <span className={`text-[11px] ${selectedCategory === null ? "text-primary-foreground/70" : "text-muted-foreground/60"}`}>
+                {items.length}
+              </span>
             </button>
             {categories.map((cat) => (
               <button
                 key={cat.gallery_category_id}
                 onClick={() => setSelectedCategory(cat.gallery_category_id)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                   selectedCategory === cat.gallery_category_id
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-background text-muted-foreground border-border hover:bg-muted hover:border-muted-foreground/30"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground bg-muted/50 hover:bg-muted hover:text-foreground"
                 }`}
               >
+                <FolderOpen className="h-3.5 w-3.5" />
                 {cat.name}
-                <span className="ml-1 text-[11px] opacity-80">({categoryCount(cat.gallery_category_id)})</span>
+                <span className={`text-[11px] ${selectedCategory === cat.gallery_category_id ? "text-primary-foreground/70" : "text-muted-foreground/60"}`}>
+                  {categoryCount(cat.gallery_category_id)}
+                </span>
               </button>
             ))}
           </div>
@@ -502,11 +560,46 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                     {item.caption}
                   </p>
                 )}
-                {item.gallery_category_id && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded inline-block">
-                    {categoryName(item.gallery_category_id)}
-                  </span>
-                )}
+                <div className="flex items-center gap-1">
+                  {changingCategoryId === item.gallery_id ? (
+                    <select
+                      value={item.gallery_category_id ?? ""}
+                      onChange={async (e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        try {
+                          const updated = await updateGallery(retreatId, item.gallery_id, { gallery_category_id: val });
+                          setItems((prev) => prev.map((i) => i.gallery_id === item.gallery_id ? updated : i));
+                          toast.success("Category updated");
+                        } catch {
+                          toast.error("Failed to update category");
+                        }
+                        setChangingCategoryId(null);
+                      }}
+                      className="flex h-6 text-[11px] rounded border border-input bg-background px-1.5 focus:outline-none focus:ring-1 focus:ring-ring"
+                      autoFocus
+                      onBlur={() => setChangingCategoryId(null)}
+                    >
+                      <option value="">No category</option>
+                      {categories.map((c) => (
+                        <option key={c.gallery_category_id} value={c.gallery_category_id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setChangingCategoryId(item.gallery_id)}
+                      className={`text-[11px] px-2 py-0.5 rounded transition-colors ${
+                        categoryName(item.gallery_category_id)
+                          ? "bg-primary/10 text-primary hover:bg-primary/20"
+                          : "text-muted-foreground/50 hover:text-muted-foreground border border-dashed border-muted-foreground/20"
+                      }`}
+                    >
+                      {categoryName(item.gallery_category_id) ?? "Set category"}
+                    </button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -540,6 +633,40 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                 Cancel
               </Button>
               <Button variant="destructive" size="sm" onClick={() => handleDelete(deleteConfirm)}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteCategoryTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setDeleteCategoryTarget(null)}
+        >
+          <div
+            className="bg-background rounded-lg shadow-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Delete Category</h3>
+                <p className="text-sm text-muted-foreground">
+                  {categoryCount(deleteCategoryTarget.gallery_category_id) > 0
+                    ? `"${deleteCategoryTarget.name}" has ${categoryCount(deleteCategoryTarget.gallery_category_id)} image${categoryCount(deleteCategoryTarget.gallery_category_id) !== 1 ? "s" : ""}. Deleting it will remove the category from those images.`
+                    : `Are you sure you want to delete "${deleteCategoryTarget.name}"?`}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteCategoryTarget(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDeleteCategory}>
                 Delete
               </Button>
             </div>
