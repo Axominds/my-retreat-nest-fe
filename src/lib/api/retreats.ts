@@ -89,6 +89,22 @@ export async function uploadGallery(
   return response.data;
 }
 
+export async function uploadRetreatThumbnail(
+  retreatId: number,
+  formData: FormData
+): Promise<Retreat> {
+  const response = await postForm<Retreat>(`/retreats/${retreatId}/thumbnail/`, formData, { auth: true });
+  return response.data;
+}
+
+export async function uploadRetreatBanner(
+  retreatId: number,
+  formData: FormData
+): Promise<Retreat> {
+  const response = await postForm<Retreat>(`/retreats/${retreatId}/banner/`, formData, { auth: true });
+  return response.data;
+}
+
 export async function updateGallery(
   retreatId: number,
   galleryId: number,

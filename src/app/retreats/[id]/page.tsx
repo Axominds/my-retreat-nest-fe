@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getRetreat, getGalleries } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
+import { API_BASE_URL } from "@/lib/constants";
 import { getGalleryCategories } from "@/lib/api/gallery-categories";
 import { RetreatGallery } from "@/components/retreats/retreat-gallery";
 import { ReviewList } from "@/components/reviews/review-list";
@@ -75,7 +76,7 @@ export default async function RetreatDetailPage({
     (c) => c.category_id === retreat.category_id
   )?.name;
   const price = formatBudget(retreat.budget_min, retreat.budget_max);
-  const heroImage = HERO_IMAGES[retreatId % HERO_IMAGES.length];
+  const heroImage = retreat.banner_image ? `${API_BASE_URL}${retreat.banner_image}` : HERO_IMAGES[retreatId % HERO_IMAGES.length];
 
   return (
     <div className="min-h-screen">

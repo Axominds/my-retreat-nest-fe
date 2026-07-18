@@ -19,21 +19,6 @@ import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
 import type { PaginationMeta } from "@/types/api";
 
-const STATIC_RETREAT_IMAGES = [
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80",
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80",
-  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
-  "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&q=80",
-  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80",
-  "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80",
-  "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600&q=80",
-  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-  "https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=600&q=80",
-];
-
 export default function RetreatsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,7 +41,6 @@ export default function RetreatsPage() {
     freeCancellation: "",
   });
   const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
-  const [imageUrlMap, setImageUrlMap] = useState<Map<number, string>>(new Map());
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
@@ -90,12 +74,6 @@ export default function RetreatsPage() {
       .then((result) => {
         setRetreats(result.items);
         setMeta(result.meta);
-
-        const map = new Map<number, string>();
-        result.items.forEach((r, i) => {
-          map.set(r.retreat_id, STATIC_RETREAT_IMAGES[i % STATIC_RETREAT_IMAGES.length]);
-        });
-        setImageUrlMap(map);
       })
       .catch(() => {
         setError("Failed to load retreats");
@@ -243,7 +221,6 @@ export default function RetreatsPage() {
                 <RetreatGrid
                   retreats={filteredRetreats}
                   categories={categories}
-                  imageUrlMap={imageUrlMap}
                   renderWishlistButton={(id) => (
                     <WishlistButton
                       retreatId={id}

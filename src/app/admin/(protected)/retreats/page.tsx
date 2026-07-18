@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { resolveImageUrl } from "@/lib/constants";
 import { toast } from "sonner";
 import {
   Pencil,
@@ -34,12 +35,7 @@ import {
   Building2,
 } from "lucide-react";
 
-const STATIC_IMAGES = [
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=200&q=60",
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=200&q=60",
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=200&q=60",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=200&q=60",
-];
+
 
 type SortKey = "name" | "newest" | "oldest" | "status";
 
@@ -365,7 +361,7 @@ export default function AdminRetreatsPage() {
               {/* Thumbnail */}
               <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-muted">
                 <img
-                  src={STATIC_IMAGES[i % STATIC_IMAGES.length]}
+                  src={resolveImageUrl(retreat.thumbnail_image) ?? ""}
                   alt=""
                   className="w-full h-full object-cover"
                 />

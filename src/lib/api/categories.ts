@@ -20,7 +20,7 @@ export async function deleteCategory(id: number): Promise<void> {
   await del(`/categories/${id}/`, { auth: true });
 }
 
-export async function uploadCategoryImage(id: number, formData: FormData): Promise<Category> {
-  const response = await postForm<Category>(`/categories/${id}/image/`, formData, { auth: true });
+export async function uploadCategoryThumbnail(id: number, formData: FormData): Promise<Category> {
+  const response = await postForm<Category>(`/categories/${id}/thumbnail/`, formData, { auth: true });
   return response.data;
 }

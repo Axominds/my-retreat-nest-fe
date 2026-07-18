@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { resolveImageUrl } from "@/lib/constants";
 import { MapPin, TreePine, Star } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 
@@ -8,7 +9,6 @@ interface RetreatCardProps {
   categoryName?: string;
   wishlistButton?: React.ReactNode;
   index?: number;
-  imageUrl?: string | null;
 }
 
 const GRADIENTS = [
@@ -40,7 +40,7 @@ function RatingStars({ rating }: { rating: number }) {
   );
 }
 
-export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0, imageUrl }: RetreatCardProps) {
+export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0 }: RetreatCardProps) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
   const price = formatBudget(retreat.budget_min, retreat.budget_max);
 
@@ -51,9 +51,9 @@ export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0, 
     >
       <Link href={`/retreats/${retreat.retreat_id}`}>
         <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-          {imageUrl ? (
+          {resolveImageUrl(retreat.thumbnail_image) ? (
             <img
-              src={imageUrl}
+              src={resolveImageUrl(retreat.thumbnail_image)!}
               alt={retreat.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"

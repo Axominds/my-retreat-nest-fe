@@ -13,22 +13,12 @@ import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
 import { toast } from "sonner";
 
-const STATIC_IMAGES = [
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=60",
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&q=60",
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=60",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=60",
-  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60",
-  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&q=60",
-];
-
 export function WishlistPageContent() {
   const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [imageUrlMap, setImageUrlMap] = useState<Map<number, string>>(new Map());
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -46,12 +36,6 @@ export function WishlistPageContent() {
         wlResult.items.map((item) => getRetreat(item.retreat_id, { is_published: true }))
       );
       setRetreats(retreatResults);
-
-      const map = new Map<number, string>();
-      retreatResults.forEach((r, i) => {
-        map.set(r.retreat_id, STATIC_IMAGES[i % STATIC_IMAGES.length]);
-      });
-      setImageUrlMap(map);
     } catch {
       setError("Failed to load wishlist");
     } finally {
@@ -133,7 +117,6 @@ export function WishlistPageContent() {
       <RetreatGrid
         retreats={retreats}
         categories={categories}
-        imageUrlMap={imageUrlMap}
         renderWishlistButton={(id) => (
           <Button
             variant="ghost"

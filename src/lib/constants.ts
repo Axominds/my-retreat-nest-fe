@@ -12,3 +12,7 @@ export function getImageUrl(retreatId: number, galleryId: number): string {
 export function getCategoryImageUrl(categoryId: number): string {
   return `${API_BASE_URL}/categories/${categoryId}/image/`;
 }
+
+export function resolveImageUrl(path: string | null | undefined): string | null {
+  return path ? `${API_BASE_URL}${path}` : null;
+}

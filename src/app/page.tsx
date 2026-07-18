@@ -24,15 +24,6 @@ import {
   Users,
 } from "lucide-react";
 
-const STATIC_RETREAT_IMAGES = [
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80",
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80",
-  "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
-  "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&q=80",
-];
-
 const CATEGORY_IMAGES = [
   "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
   "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80",
@@ -196,7 +187,6 @@ export default function HomePage() {
                 <RetreatGrid
                   retreats={featuredRetreats}
                   categories={categories}
-                  imageUrlMap={new Map(featuredRetreats.map((r, i) => [r.retreat_id, STATIC_RETREAT_IMAGES[i % STATIC_RETREAT_IMAGES.length]]))}
                   renderWishlistButton={(id) => (
                     <WishlistButton
                       retreatId={id}

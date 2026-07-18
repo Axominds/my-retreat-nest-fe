@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryImage } from "@/lib/api/categories";
-import { getCategoryImageUrl } from "@/lib/constants";
+import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryThumbnail } from "@/lib/api/categories";
+import { resolveImageUrl } from "@/lib/constants";
 import type { Category } from "@/types/category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ export default function AdminCategoriesPage() {
   const [form, setForm] = useState({ name: "", description: "" });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [savingImage, setSavingImage] = useState(false);
   const imageRef = useRef<HTMLInputElement>(null);
   const fetched = useRef(false);
 
@@ -82,25 +82,27 @@ export default function AdminCategoriesPage() {
       const updated = await updateCategory(editingId, { name: form.name, description: form.description || null });
       setCategories((prev) => prev.map((c) => (c.category_id === editingId ? updated : c)));
       toast.success("Category updated");
-
-      if (imageFile) {
-        setUploadingImage(true);
-        try {
-          const formData = new FormData();
-          formData.append("image", imageFile);
-          const withImage = await uploadCategoryImage(editingId, formData);
-          setCategories((prev) => prev.map((c) => (c.category_id === editingId ? withImage : c)));
-          toast.success("Image uploaded");
-        } catch (err) {
-          toast.error(err instanceof ApiError ? err.message : "Failed to upload image");
-        } finally {
-          setUploadingImage(false);
-        }
-      }
-
       resetForm();
     } catch {
       toast.error("Failed to update category");
+    }
+  }
+
+  async function handleSaveImage() {
+    if (!editingId || !imageFile) return;
+    setSavingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", imageFile);
+      const withImage = await uploadCategoryThumbnail(editingId, formData);
+      setCategories((prev) => prev.map((c) => (c.category_id === editingId ? withImage : c)));
+      setImageFile(null);
+      setImagePreview(null);
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to upload image");
+    } finally {
+      setSavingImage(false);
     }
   }
 
@@ -216,9 +218,9 @@ export default function AdminCategoriesPage() {
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
                     <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                   </div>
-                ) : editingCategory?.image_url ? (
+                ) : editingCategory?.thumbnail_image ? (
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
-                    <img src={getCategoryImageUrl(editingCategory.category_id)} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(editingCategory.thumbnail_image) ?? ""} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
@@ -234,9 +236,14 @@ export default function AdminCategoriesPage() {
                 />
                 <Button variant="outline" size="sm" onClick={() => imageRef.current?.click()}>
                   <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  {editingCategory?.image_url ? "Change" : "Upload"}
+                  {editingCategory?.thumbnail_image ? "Change" : "Upload"}
                 </Button>
-                {(imagePreview || editingCategory?.image_url) && (
+                {imageFile && (
+                  <Button size="sm" onClick={handleSaveImage} disabled={savingImage}>
+                    {savingImage ? "Saving..." : "Save"}
+                  </Button>
+                )}
+                {(imagePreview || editingCategory?.thumbnail_image) && (
                   <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setImageFile(null); setImagePreview(null); }}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
@@ -246,8 +253,8 @@ export default function AdminCategoriesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}><X className="h-4 w-4 mr-2" /> Cancel</Button>
-            <Button onClick={handleUpdate} disabled={uploadingImage}>
-              <Check className="h-4 w-4 mr-2" /> {uploadingImage ? "Uploading..." : "Save"}
+            <Button onClick={handleUpdate}>
+              <Check className="h-4 w-4 mr-2" /> Save
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -310,8 +317,8 @@ export default function AdminCategoriesPage() {
               className="group flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200"
             >
               <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
-                {cat.image_url ? (
-                  <img src={getCategoryImageUrl(cat.category_id)} alt="" className="w-full h-full object-cover" />
+                {cat.thumbnail_image ? (
+                  <img src={resolveImageUrl(cat.thumbnail_image) ?? ""} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <FolderTree className="h-5 w-5 text-muted-foreground" />

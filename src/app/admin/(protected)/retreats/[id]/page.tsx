@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
-import { getRetreat, updateRetreat } from "@/lib/api/retreats";
+import { getRetreat, updateRetreat, uploadRetreatThumbnail, uploadRetreatBanner } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
 import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
@@ -14,8 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { resolveImageUrl } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, ChevronDown, ChevronRight, Upload, X } from "lucide-react";
 import { GalleryManager } from "@/components/admin/gallery-manager";
 import { StaffManager } from "@/components/admin/staff-manager";
 
@@ -42,6 +43,14 @@ export default function AdminRetreatDetailPage() {
   });
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [showMapFields, setShowMapFields] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [savingThumbnail, setSavingThumbnail] = useState(false);
+  const [savingBanner, setSavingBanner] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const fetched = useRef(false);
 
   const slugify = useCallback((val: string) =>
@@ -120,6 +129,42 @@ export default function AdminRetreatDetailPage() {
       toast.error("Failed to save retreat");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveThumbnail() {
+    if (!thumbnailFile) return;
+    setSavingThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", thumbnailFile);
+      const updated = await uploadRetreatThumbnail(retreatId, formData);
+      setRetreat(updated);
+      setThumbnailFile(null);
+      setThumbnailPreview(null);
+      toast.success("Thumbnail uploaded");
+    } catch {
+      toast.error("Failed to upload thumbnail");
+    } finally {
+      setSavingThumbnail(false);
+    }
+  }
+
+  async function handleSaveBanner() {
+    if (!bannerFile) return;
+    setSavingBanner(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", bannerFile);
+      const updated = await uploadRetreatBanner(retreatId, formData);
+      setRetreat(updated);
+      setBannerFile(null);
+      setBannerPreview(null);
+      toast.success("Banner uploaded");
+    } catch {
+      toast.error("Failed to upload banner");
+    } finally {
+      setSavingBanner(false);
     }
   }
 
@@ -330,8 +375,110 @@ export default function AdminRetreatDetailPage() {
             </Card>
           </div>
 
-          {/* Right: Basic Information + Save */}
+          {/* Right: Images + Basic Information */}
           <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  Images
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Thumbnail */}
+                <div className="space-y-2">
+                  <Label>Thumbnail</Label>
+                  <div className="flex items-center gap-3">
+                    {thumbnailPreview ? (
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
+                        <img src={thumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : retreat.thumbnail_image ? (
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
+                        <img src={resolveImageUrl(retreat.thumbnail_image) ?? ""} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
+                        <Image className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <input
+                      ref={thumbnailInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setThumbnailFile(f);
+                        if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+                        setThumbnailPreview(f ? URL.createObjectURL(f) : null);
+                      }}
+                    />
+                    <Button variant="outline" size="sm" onClick={() => thumbnailInputRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                      {retreat.thumbnail_image ? "Change" : "Upload"}
+                    </Button>
+                    {thumbnailFile && (
+                      <Button size="sm" onClick={handleSaveThumbnail} disabled={savingThumbnail}>
+                        {savingThumbnail ? "Saving..." : "Save"}
+                      </Button>
+                    )}
+                    {(thumbnailPreview || retreat.thumbnail_image) && (
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setThumbnailFile(null); setThumbnailPreview(null); }}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Banner */}
+                <div className="space-y-2">
+                  <Label>Banner</Label>
+                  <div className="flex items-center gap-3">
+                    {bannerPreview ? (
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
+                        <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : retreat.banner_image ? (
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
+                        <img src={resolveImageUrl(retreat.banner_image) ?? ""} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
+                        <Image className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <input
+                      ref={bannerInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setBannerFile(f);
+                        if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+                        setBannerPreview(f ? URL.createObjectURL(f) : null);
+                      }}
+                    />
+                    <Button variant="outline" size="sm" onClick={() => bannerInputRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                      {retreat.banner_image ? "Change" : "Upload"}
+                    </Button>
+                    {bannerFile && (
+                      <Button size="sm" onClick={handleSaveBanner} disabled={savingBanner}>
+                        {savingBanner ? "Saving..." : "Save"}
+                      </Button>
+                    )}
+                    {(bannerPreview || retreat.banner_image) && (
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setBannerFile(null); setBannerPreview(null); }}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Basic Information</CardTitle>
