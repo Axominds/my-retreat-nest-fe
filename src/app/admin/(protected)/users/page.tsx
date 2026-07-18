@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { getUsers, deleteUser } from "@/lib/api/users";
 import type { User } from "@/types/user";
+import type { PaginationMeta } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PaginationControls } from "@/components/retreats/pagination-controls";
 import { Trash2, Search, AlertTriangle, UsersIcon, X, Mail, Phone, Shield, ArrowUpDown } from "lucide-react";
 
 export default function AdminUsersPage() {
@@ -18,12 +21,13 @@ export default function AdminUsersPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState<User[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loginTypeFilter, setLoginTypeFilter] = useState("all");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [sortOrder, setSortOrder] = useState<"name" | "newest">("newest");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
-  const fetched = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -32,26 +36,24 @@ export default function AdminUsersPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated || fetched.current) return;
-    fetched.current = true;
-
-    getUsers()
-      .then(setUsers)
+    if (authLoading || !isAuthenticated) return;
+    setLoading(true);
+    const sortOpts = sortOrder === "name"
+      ? { sort_by: "name", sort_order: "asc" }
+      : { sort_by: "user_id", sort_order: "desc" };
+    getUsers({
+      page,
+      page_size: 10,
+      search: debouncedSearch || undefined,
+      ...sortOpts,
+    })
+      .then((res) => {
+        setUsers(res.items);
+        setMeta(res.meta);
+      })
       .catch(() => toast.error("Failed to load users"))
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated]);
-
-  const filtered = useMemo(() => {
-    let result = users.filter((u) => {
-      if (loginTypeFilter !== "all" && u.login_type !== loginTypeFilter) return false;
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-    });
-    if (sortOrder === "name") result.sort((a, b) => a.name.localeCompare(b.name));
-    else result.sort((a, b) => b.user_id - a.user_id);
-    return result;
-  }, [users, searchQuery, loginTypeFilter, sortOrder]);
+  }, [authLoading, isAuthenticated, page, debouncedSearch, sortOrder]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -90,7 +92,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold">Users</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {users.length} total
+            {meta?.total ?? users.length} total
           </p>
         </div>
       </div>
@@ -103,23 +105,12 @@ export default function AdminUsersPage() {
             <Input
               placeholder="Search users by name or email..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               className="pl-9 bg-background"
             />
           </div>
           <div className="flex gap-2.5">
-            <Select value={loginTypeFilter} onValueChange={(v) => setLoginTypeFilter(v)}>
-              <SelectTrigger className="w-32 bg-background">
-                <Shield className="h-3.5 w-3.5 mr-2" />
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent side="bottom" align="start">
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-                <SelectItem value="google">Google</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as typeof sortOrder)}>
+            <Select value={sortOrder} onValueChange={(v) => { setSortOrder(v as typeof sortOrder); setPage(1); }}>
               <SelectTrigger className="w-32 bg-background">
                 <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
                 <SelectValue />
@@ -156,7 +147,7 @@ export default function AdminUsersPage() {
 
       {/* Users List */}
       <div className="overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
-      {filtered.length === 0 ? (
+      {users.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
             <UsersIcon className="h-8 w-8 text-muted-foreground" />
@@ -168,14 +159,14 @@ export default function AdminUsersPage() {
             {searchQuery ? "Try a different search term." : "Users will appear here once they register."}
           </p>
           {searchQuery && (
-            <Button variant="outline" onClick={() => setSearchQuery("")} className="mt-6">
+            <Button variant="outline" onClick={() => { setSearchQuery(""); setPage(1); }} className="mt-6">
               <X className="h-4 w-4 mr-2" /> Clear Search
             </Button>
           )}
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((u) => (
+          {users.map((u) => (
             <div
               key={u.user_id}
               className="group flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200"
@@ -222,6 +213,9 @@ export default function AdminUsersPage() {
             </div>
           ))}
         </div>
+      )}
+      {meta && (
+        <PaginationControls meta={meta} onPageChange={setPage} />
       )}
       </div>
     </div>

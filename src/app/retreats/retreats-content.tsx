@@ -44,8 +44,8 @@ export default function RetreatsPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
-    getCategories()
-      .then(setCategories)
+    getCategories({ page_size: 100 })
+      .then((c) => setCategories(c.items))
       .catch(() => {});
   }, []);
 

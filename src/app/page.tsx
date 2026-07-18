@@ -46,8 +46,8 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    getCategories()
-      .then(setCategories)
+    getCategories({ page_size: 100 })
+      .then((c) => setCategories(c.items))
       .catch(() => {});
   }, []);
 

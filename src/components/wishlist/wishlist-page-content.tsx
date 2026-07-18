@@ -26,9 +26,9 @@ export function WishlistPageContent() {
     try {
       const [wlResult, cats] = await Promise.all([
         getWishlist(),
-        getCategories(),
+        getCategories({ page_size: 100 }),
       ]);
-      setCategories(cats);
+      setCategories(cats.items);
       const ids = new Set(wlResult.items.map((item) => item.retreat_id));
       setWishlistIds(ids);
 

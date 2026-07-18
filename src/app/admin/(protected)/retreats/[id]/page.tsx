@@ -67,10 +67,10 @@ export default function AdminRetreatDetailPage() {
     if (authLoading || !isAuthenticated || fetched.current || !retreatId) return;
     fetched.current = true;
 
-    Promise.all([getRetreat(retreatId), getCategories()])
+    Promise.all([getRetreat(retreatId), getCategories({ page_size: 100 })])
       .then(([r, c]) => {
         setRetreat(r);
-        setCategories(c);
+        setCategories(c.items);
         const links = r.social_links as Record<string, string> | undefined;
         setForm({
           name: r.name,

@@ -57,14 +57,14 @@ export default async function RetreatDetailPage({
   }
 
   let retreat;
-  let categories;
+  let categoryList;
   let galleryCategories;
   let galleries;
 
   try {
-    [retreat, categories, galleryCategories, galleries] = await Promise.all([
+    [retreat, categoryList, galleryCategories, galleries] = await Promise.all([
       getRetreat(retreatId, { is_published: true }),
-      getCategories(),
+      getCategories({ page_size: 100 }),
       getGalleryCategories(retreatId),
       getGalleries(retreatId),
     ]);
@@ -72,6 +72,7 @@ export default async function RetreatDetailPage({
     notFound();
   }
 
+  const categories = categoryList.items;
   const categoryName = categories.find(
     (c) => c.category_id === retreat.category_id
   )?.name;

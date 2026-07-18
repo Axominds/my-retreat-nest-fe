@@ -27,6 +27,10 @@ export async function getRetreats(params?: {
   page?: number;
   page_size?: number;
   is_published?: boolean;
+  search?: string;
+  category_id?: number;
+  sort_by?: string;
+  sort_order?: string;
 }): Promise<{ items: Retreat[]; meta: PaginationMeta }> {
   const queryParams: Record<string, string | number> = {
     page: params?.page ?? 1,
@@ -34,6 +38,18 @@ export async function getRetreats(params?: {
   };
   if (params?.is_published !== undefined) {
     queryParams.is_published = params.is_published ? "true" : "false";
+  }
+  if (params?.search) {
+    queryParams.search = params.search;
+  }
+  if (params?.category_id !== undefined) {
+    queryParams.category_id = params.category_id;
+  }
+  if (params?.sort_by) {
+    queryParams.sort_by = params.sort_by;
+  }
+  if (params?.sort_order) {
+    queryParams.sort_order = params.sort_order;
   }
   const response = await get<Retreat[]>("/retreats/", { params: queryParams });
   return {

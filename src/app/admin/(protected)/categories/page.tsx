@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryThumbnail } from "@/lib/api/categories";
 import { resolveImageUrl } from "@/lib/constants";
 import type { Category } from "@/types/category";
+import type { PaginationMeta } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/retreats/pagination-controls";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/api/client";
 import { toast } from "sonner";
@@ -21,8 +24,11 @@ export default function AdminCategoriesPage() {
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
@@ -31,7 +37,6 @@ export default function AdminCategoriesPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [savingImage, setSavingImage] = useState(false);
   const imageRef = useRef<HTMLInputElement>(null);
-  const fetched = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -40,21 +45,16 @@ export default function AdminCategoriesPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated || fetched.current) return;
-    fetched.current = true;
-
-    getCategories()
-      .then(setCategories)
+    if (authLoading || !isAuthenticated) return;
+    setLoading(true);
+    getCategories({ page, page_size: 10, search: debouncedSearch || undefined })
+      .then((res) => {
+        setCategories(res.items);
+        setMeta(res.meta);
+      })
       .catch(() => toast.error("Failed to load categories"))
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated]);
-
-  const filtered = useMemo(() =>
-    categories.filter((c) =>
-      !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    [categories, searchQuery]
-  );
+  }, [authLoading, isAuthenticated, page, debouncedSearch]);
 
   function resetForm() {
     setForm({ name: "", description: "" });
@@ -150,7 +150,7 @@ export default function AdminCategoriesPage() {
         <div>
           <h1 className="text-2xl font-bold">Categories</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {categories.length} total
+            {meta?.total ?? categories.length} total
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
@@ -165,7 +165,7 @@ export default function AdminCategoriesPage() {
           <Input
             placeholder="Search categories..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             className="pl-9 bg-background"
           />
         </div>
@@ -296,7 +296,7 @@ export default function AdminCategoriesPage() {
             <Plus className="h-4 w-4 mr-2" /> Create Your First Category
           </Button>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : categories.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
             <Search className="h-8 w-8 text-muted-foreground" />
@@ -305,13 +305,13 @@ export default function AdminCategoriesPage() {
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
             Try a different search term.
           </p>
-          <Button variant="outline" onClick={() => setSearchQuery("")} className="mt-6">
+          <Button variant="outline" onClick={() => { setSearchQuery(""); setPage(1); }} className="mt-6">
             <X className="h-4 w-4 mr-2" /> Clear Search
           </Button>
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((cat) => (
+          {categories.map((cat) => (
             <div
               key={cat.category_id}
               className="group flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200"
@@ -342,6 +342,9 @@ export default function AdminCategoriesPage() {
             </div>
           ))}
         </div>
+      )}
+      {meta && (
+        <PaginationControls meta={meta} onPageChange={setPage} />
       )}
       </div>
     </div>

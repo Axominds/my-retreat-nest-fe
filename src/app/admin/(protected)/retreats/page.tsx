@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +9,7 @@ import { getRetreats, createRetreat, deleteRetreat } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
 import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
+import type { PaginationMeta } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { resolveImageUrl } from "@/lib/constants";
+import { PaginationControls } from "@/components/retreats/pagination-controls";
 import { toast } from "sonner";
 import {
   Pencil,
@@ -44,16 +47,18 @@ export default function AdminRetreatsPage() {
   const router = useRouter();
 
   const [retreats, setRetreats] = useState<Retreat[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [deleteTarget, setDeleteTarget] = useState<Retreat | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", category_id: 0, description: "", email: "", phone: "", address: "", latitude: "", longitude: "", budget_min: "", budget_max: "", social_links_instagram: "", social_links_facebook: "" });
-  const fetched = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -62,45 +67,37 @@ export default function AdminRetreatsPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated || fetched.current) return;
-    fetched.current = true;
-
-    Promise.all([getRetreats({ page_size: 100 }), getCategories()])
+    if (authLoading || !isAuthenticated) return;
+    setLoading(true);
+    const sortParams: Record<string, string> = {};
+    if (sortKey === "name") sortParams.sort_by = "name";
+    else if (sortKey === "oldest") sortParams.sort_by = "oldest";
+    else if (sortKey === "status") sortParams.sort_by = "status";
+    const params: Record<string, string | number | boolean> = {
+      page,
+      page_size: 10,
+      ...sortParams,
+    };
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (categoryFilter !== "all") params.category_id = Number(categoryFilter);
+    if (statusFilter === "published") params.is_published = true;
+    if (statusFilter === "draft") params.is_published = false;
+    Promise.all([
+      getRetreats(params),
+      getCategories({ page_size: 100 }),
+    ])
       .then(([r, c]) => {
         setRetreats(r.items);
-        setCategories(c);
+        setMeta(r.meta);
+        setCategories(c.items);
       })
       .catch(() => toast.error("Failed to load retreats"))
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, page, debouncedSearch, categoryFilter, statusFilter, sortKey]);
 
   const slugify = useCallback((val: string) =>
     val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
   []);
-
-  const sortedRetreats = useMemo(() => {
-    const sorted = [...retreats];
-    switch (sortKey) {
-      case "name": sorted.sort((a, b) => a.name.localeCompare(b.name)); break;
-      case "newest": sorted.sort((a, b) => b.retreat_id - a.retreat_id); break;
-      case "oldest": sorted.sort((a, b) => a.retreat_id - b.retreat_id); break;
-      case "status": sorted.sort((a, b) => Number(b.is_published) - Number(a.is_published)); break;
-    }
-    return sorted;
-  }, [retreats, sortKey]);
-
-  const filteredRetreats = useMemo(() =>
-    sortedRetreats.filter((r) => {
-      if (categoryFilter !== "all" && r.category_id !== Number(categoryFilter)) return false;
-      if (statusFilter === "published" && !r.is_published) return false;
-      if (statusFilter === "draft" && r.is_published) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!r.name.toLowerCase().includes(q) && !r.slug?.toLowerCase().includes(q)) return false;
-      }
-      return true;
-    }),
-  [sortedRetreats, searchQuery, categoryFilter, statusFilter]);
 
   const isFiltered = searchQuery || categoryFilter !== "all" || statusFilter !== "all";
 
@@ -170,7 +167,7 @@ export default function AdminRetreatsPage() {
         <div>
           <h1 className="text-2xl font-bold">Retreats</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {retreats.length} total &middot; {publishedCount} published &middot; {draftCount} drafts
+            {(meta?.total ?? retreats.length)} total &middot; {publishedCount} published &middot; {draftCount} drafts
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
@@ -186,12 +183,12 @@ export default function AdminRetreatsPage() {
             <Input
               placeholder="Search retreats..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               className="pl-9 bg-background"
             />
           </div>
           <div className="flex gap-2.5 flex-wrap">
-            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? "all")}>
+            <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v ?? "all"); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-40 bg-background"><SelectValue placeholder="All categories" /></SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All categories</SelectItem>
@@ -200,7 +197,7 @@ export default function AdminRetreatsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-32 bg-background"><SelectValue placeholder="All status" /></SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All status</SelectItem>
@@ -208,7 +205,7 @@ export default function AdminRetreatsPage() {
                 <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <Select value={sortKey} onValueChange={(v) => { setSortKey(v as SortKey); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-32 bg-background">
                 <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
                 <SelectValue />
@@ -338,7 +335,7 @@ export default function AdminRetreatsPage() {
             <Plus className="h-4 w-4 mr-2" /> Create Your First Retreat
           </Button>
         </div>
-      ) : filteredRetreats.length === 0 ? (
+      ) : retreats.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
             <SlidersHorizontal className="h-8 w-8 text-muted-foreground" />
@@ -347,13 +344,13 @@ export default function AdminRetreatsPage() {
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
             Try adjusting your search, category, or status filters.
           </p>
-          <Button variant="outline" onClick={() => { setSearchQuery(""); setCategoryFilter("all"); setStatusFilter("all"); }} className="mt-6">
+          <Button variant="outline" onClick={() => { setSearchQuery(""); setCategoryFilter("all"); setStatusFilter("all"); setPage(1); }} className="mt-6">
             <X className="h-4 w-4 mr-2" /> Clear Filters
           </Button>
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredRetreats.map((retreat, i) => (
+          {retreats.map((retreat) => (
             <div
               key={retreat.retreat_id}
               className="group flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200"
@@ -431,6 +428,9 @@ export default function AdminRetreatsPage() {
             </div>
           ))}
         </div>
+      )}
+      {meta && (
+        <PaginationControls meta={meta} onPageChange={setPage} />
       )}
       </div>
     </div>

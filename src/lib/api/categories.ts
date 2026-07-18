@@ -1,9 +1,24 @@
 import { get, post, patch, del, postForm } from "@/lib/api/client";
 import type { Category } from "@/types/category";
+import type { PaginationMeta } from "@/types/api";
 
-export async function getCategories(): Promise<Category[]> {
-  const response = await get<Category[]>("/categories/");
-  return response.data;
+export async function getCategories(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+}): Promise<{ items: Category[]; meta: PaginationMeta }> {
+  const queryParams: Record<string, string | number> = {
+    page: params?.page ?? 1,
+    page_size: params?.page_size ?? 10,
+  };
+  if (params?.search) {
+    queryParams.search = params.search;
+  }
+  const response = await get<Category[]>("/categories/", { params: queryParams });
+  return {
+    items: response.data,
+    meta: response.meta as PaginationMeta,
+  };
 }
 
 export async function createCategory(payload: { name: string; description?: string | null }): Promise<Category> {
