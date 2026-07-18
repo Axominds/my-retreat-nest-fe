@@ -24,7 +24,7 @@ export interface RetreatGalleryItem {
   retreat_id: number;
   caption: string | null;
   order: number | null;
-  gallery_category_id: number | null;
+  gallery_category_id: number;
   created_by: number | null;
   updated_by: number | null;
 }

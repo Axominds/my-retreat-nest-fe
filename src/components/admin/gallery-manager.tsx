@@ -94,12 +94,16 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
       toast.error("Select an image");
       return;
     }
+    if (!galleryCategoryId) {
+      toast.error("Select a category");
+      return;
+    }
     setUploading(true);
 
     const formData = new FormData();
     formData.append("image", file);
     if (caption) formData.append("caption", caption);
-    if (galleryCategoryId) formData.append("gallery_category_id", String(galleryCategoryId));
+    formData.append("gallery_category_id", String(galleryCategoryId));
 
     try {
       const item = await uploadGallery(retreatId, formData);
@@ -146,13 +150,13 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
     if (!deleteCategoryTarget) return;
     try {
       await deleteGalleryCategory(retreatId, deleteCategoryTarget.gallery_category_id);
-      setCategories((prev) => prev.filter((c) => c.gallery_category_id !== deleteCategoryTarget.gallery_category_id));
-      setItems((prev) => prev.map((i) =>
-        i.gallery_category_id === deleteCategoryTarget.gallery_category_id
-          ? { ...i, gallery_category_id: null }
-          : i
-      ));
-      if (galleryCategoryId === deleteCategoryTarget.gallery_category_id) setGalleryCategoryId(null);
+      setCategories((prev) => {
+        const updated = prev.filter((c) => c.gallery_category_id !== deleteCategoryTarget.gallery_category_id);
+        if (galleryCategoryId === deleteCategoryTarget.gallery_category_id) {
+          setGalleryCategoryId(updated.length > 0 ? updated[0].gallery_category_id : null);
+        }
+        return updated;
+      });
       if (selectedCategory === deleteCategoryTarget.gallery_category_id) setSelectedCategory(null);
       setDeleteCategoryTarget(null);
       toast.success("Category deleted");
@@ -308,7 +312,7 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-medium">Category</label>
+                  <label className="text-[11px] font-medium">Category <span className="text-destructive">*</span></label>
                   <select
                     value={galleryCategoryId ?? ""}
                     onChange={(e) =>
@@ -316,7 +320,7 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                     }
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">No category</option>
+                    <option value="" disabled>Select a category</option>
                     {categories.map((c) => (
                       <option key={c.gallery_category_id} value={c.gallery_category_id}>
                         {c.name}
@@ -563,9 +567,9 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                 <div className="flex items-center gap-1">
                   {changingCategoryId === item.gallery_id ? (
                     <select
-                      value={item.gallery_category_id ?? ""}
+                      value={item.gallery_category_id}
                       onChange={async (e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
+                        const val = Number(e.target.value);
                         try {
                           const updated = await updateGallery(retreatId, item.gallery_id, { gallery_category_id: val });
                           setItems((prev) => prev.map((i) => i.gallery_id === item.gallery_id ? updated : i));
@@ -579,7 +583,7 @@ export function GalleryManager({ retreatId }: { retreatId: number }) {
                       autoFocus
                       onBlur={() => setChangingCategoryId(null)}
                     >
-                      <option value="">No category</option>
+                      <option value="" disabled>Select a category</option>
                       {categories.map((c) => (
                         <option key={c.gallery_category_id} value={c.gallery_category_id}>
                           {c.name}
