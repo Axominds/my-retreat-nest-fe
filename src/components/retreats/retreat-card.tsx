@@ -85,10 +85,10 @@ export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0, 
               {retreat.name}
             </h3>
           </Link>
-          {retreat.rating != null && (
+          {retreat.average_rating != null && (
             <div className="flex items-center gap-1 shrink-0">
-              <RatingStars rating={retreat.rating} />
-              <span className="text-xs text-muted-foreground">{retreat.rating.toFixed(1)}</span>
+              <RatingStars rating={retreat.average_rating} />
+              <span className="text-xs text-muted-foreground">{retreat.average_rating.toFixed(1)}</span>
             </div>
           )}
           {categoryName && (

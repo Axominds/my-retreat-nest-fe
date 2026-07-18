@@ -62,7 +62,7 @@ export default async function RetreatDetailPage({
 
   try {
     [retreat, categories, galleryCategories, galleries] = await Promise.all([
-      getRetreat(retreatId),
+      getRetreat(retreatId, { is_published: true }),
       getCategories(),
       getGalleryCategories(retreatId),
       getGalleries(retreatId),
@@ -104,10 +104,10 @@ export default async function RetreatDetailPage({
                 {retreat.address}
               </p>
             )}
-            {retreat.rating != null && (
+            {retreat.average_rating != null && (
               <div className="flex items-center gap-1.5 mt-2">
                 <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                <span className="text-white font-semibold">{retreat.rating.toFixed(1)}</span>
+                <span className="text-white font-semibold">{retreat.average_rating.toFixed(1)}</span>
               </div>
             )}
           </div>

@@ -86,7 +86,7 @@ export default function RetreatsPage() {
     setError(null);
     setIsTransitioning(true);
 
-    getRetreats({ page, page_size: 12 })
+    getRetreats({ page, page_size: 12, is_published: true })
       .then((result) => {
         setRetreats(result.items);
         setMeta(result.meta);
@@ -120,7 +120,7 @@ export default function RetreatsPage() {
       }
       if (filters.budgetMin && r.budget_min != null && r.budget_min < Number(filters.budgetMin)) return false;
       if (filters.budgetMax && r.budget_max != null && r.budget_max > Number(filters.budgetMax)) return false;
-      if (filters.rating && r.rating != null && r.rating < Number(filters.rating)) return false;
+      if (filters.rating && r.average_rating != null && r.average_rating < Number(filters.rating)) return false;
       if (filters.breakfastIncluded && r.breakfast_included != null) {
         const wantsBreakfast = filters.breakfastIncluded === "yes";
         if (r.breakfast_included !== wantsBreakfast) return false;

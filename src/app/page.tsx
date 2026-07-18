@@ -63,7 +63,7 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
 
-    getRetreats({ page: 1, page_size: 6 })
+    getRetreats({ page: 1, page_size: 6, is_published: true })
       .then((result) => {
         if (cancelled) return;
         setFeaturedRetreats(result.items);

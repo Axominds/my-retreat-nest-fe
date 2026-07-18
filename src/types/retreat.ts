@@ -13,7 +13,7 @@ export interface Retreat {
   budget_min: number | null;
   budget_max: number | null;
   is_published: boolean;
-  rating?: number | null;
+  average_rating?: number | null;
   breakfast_included?: boolean | null;
   payment_type?: string | null;
   free_cancellation?: boolean | null;

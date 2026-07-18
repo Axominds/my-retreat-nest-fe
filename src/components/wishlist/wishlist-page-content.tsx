@@ -43,7 +43,7 @@ export function WishlistPageContent() {
       setWishlistIds(ids);
 
       const retreatResults = await Promise.all(
-        wlResult.items.map((item) => getRetreat(item.retreat_id))
+        wlResult.items.map((item) => getRetreat(item.retreat_id, { is_published: true }))
       );
       setRetreats(retreatResults);
 

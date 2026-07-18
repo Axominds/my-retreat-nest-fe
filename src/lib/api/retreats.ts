@@ -26,21 +26,28 @@ export interface RetreatPayload {
 export async function getRetreats(params?: {
   page?: number;
   page_size?: number;
+  is_published?: boolean;
 }): Promise<{ items: Retreat[]; meta: PaginationMeta }> {
-  const response = await get<Retreat[]>("/retreats/", {
-    params: {
-      page: params?.page ?? 1,
-      page_size: params?.page_size ?? 10,
-    },
-  });
+  const queryParams: Record<string, string | number> = {
+    page: params?.page ?? 1,
+    page_size: params?.page_size ?? 10,
+  };
+  if (params?.is_published !== undefined) {
+    queryParams.is_published = params.is_published ? "true" : "false";
+  }
+  const response = await get<Retreat[]>("/retreats/", { params: queryParams });
   return {
     items: response.data,
     meta: response.meta as PaginationMeta,
   };
 }
 
-export async function getRetreat(id: number): Promise<Retreat> {
-  const response = await get<Retreat>(`/retreats/${id}/`);
+export async function getRetreat(id: number, params?: { is_published?: boolean }): Promise<Retreat> {
+  const queryParams: Record<string, string | number> = {};
+  if (params?.is_published !== undefined) {
+    queryParams.is_published = params.is_published ? "true" : "false";
+  }
+  const response = await get<Retreat>(`/retreats/${id}/`, { params: queryParams });
   return response.data;
 }
 
