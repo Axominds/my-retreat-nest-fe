@@ -49,7 +49,7 @@ export default function AdminRetreatsPage() {
   const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,7 +68,6 @@ export default function AdminRetreatsPage() {
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
-    setLoading(true);
     const sortParams: Record<string, string> = {};
     if (sortKey === "name") sortParams.sort_by = "name";
     else if (sortKey === "oldest") sortParams.sort_by = "oldest";
@@ -92,7 +91,7 @@ export default function AdminRetreatsPage() {
         setCategories(c.items);
       })
       .catch(() => toast.error("Failed to load retreats"))
-      .finally(() => setLoading(false));
+      .finally(() => setInitialLoading(false));
   }, [authLoading, isAuthenticated, page, debouncedSearch, categoryFilter, statusFilter, sortKey]);
 
   const slugify = useCallback((val: string) =>
@@ -147,7 +146,7 @@ export default function AdminRetreatsPage() {
     }
   }
 
-  if (authLoading || loading) {
+  if (authLoading || initialLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />

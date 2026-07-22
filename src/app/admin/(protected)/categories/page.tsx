@@ -25,7 +25,7 @@ export default function AdminCategoriesPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -46,14 +46,13 @@ export default function AdminCategoriesPage() {
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
-    setLoading(true);
     getCategories({ page, page_size: 10, search: debouncedSearch || undefined })
       .then((res) => {
         setCategories(res.items);
         setMeta(res.meta);
       })
       .catch(() => toast.error("Failed to load categories"))
-      .finally(() => setLoading(false));
+      .finally(() => setInitialLoading(false));
   }, [authLoading, isAuthenticated, page, debouncedSearch]);
 
   function resetForm() {
@@ -132,7 +131,7 @@ export default function AdminCategoriesPage() {
     setImagePreview(f ? URL.createObjectURL(f) : null);
   }
 
-  if (authLoading || loading) {
+  if (authLoading || initialLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />

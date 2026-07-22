@@ -22,7 +22,7 @@ export default function AdminUsersPage() {
 
   const [users, setUsers] = useState<User[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -37,7 +37,6 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
-    setLoading(true);
     const sortOpts = sortOrder === "name"
       ? { sort_by: "name", sort_order: "asc" }
       : { sort_by: "user_id", sort_order: "desc" };
@@ -52,7 +51,7 @@ export default function AdminUsersPage() {
         setMeta(res.meta);
       })
       .catch(() => toast.error("Failed to load users"))
-      .finally(() => setLoading(false));
+      .finally(() => setInitialLoading(false));
   }, [authLoading, isAuthenticated, page, debouncedSearch, sortOrder]);
 
   async function handleDelete() {
@@ -76,7 +75,7 @@ export default function AdminUsersPage() {
     return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   }
 
-  if (authLoading || loading) {
+  if (authLoading || initialLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
