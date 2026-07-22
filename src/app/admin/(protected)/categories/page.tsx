@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Pencil, Trash2, X, Check, Plus, Search, AlertTriangle, FolderTree, Upload, ImageIcon } from "lucide-react";
 
 export default function AdminCategoriesPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { adminUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -39,13 +39,13 @@ export default function AdminCategoriesPage() {
   const imageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+    if (!authLoading && !adminUser) {
+      router.push("/admin/login");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, adminUser, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
+    if (authLoading || !adminUser) return;
     getCategories({ page, page_size: 10, search: debouncedSearch || undefined })
       .then((res) => {
         setCategories(res.items);
@@ -53,7 +53,7 @@ export default function AdminCategoriesPage() {
       })
       .catch(() => toast.error("Failed to load categories"))
       .finally(() => setInitialLoading(false));
-  }, [authLoading, isAuthenticated, page, debouncedSearch]);
+  }, [authLoading, adminUser, page, debouncedSearch]);
 
   function resetForm() {
     setForm({ name: "", description: "" });

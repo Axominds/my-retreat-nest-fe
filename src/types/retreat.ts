@@ -5,10 +5,10 @@ export interface Retreat {
   category_id: number;
   slug: string;
   social_links: Record<string, unknown>;
-  email: string | null;
-  phone: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  email: string;
+  phone: string;
+  latitude: number;
+  longitude: number;
   address: string | null;
   budget_min: number | null;
   budget_max: number | null;

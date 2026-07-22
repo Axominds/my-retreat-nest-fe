@@ -6,6 +6,15 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { getRetreat, updateRetreat, uploadRetreatThumbnail, uploadRetreatBanner } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
+import dynamic from "next/dynamic";
+
+const LocationPicker = dynamic(
+  () =>
+    import("@/components/admin/location-picker").then(
+      (m) => ({ default: m.LocationPicker }),
+    ),
+  { ssr: false },
+);
 import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
 import { Button } from "@/components/ui/button";
@@ -16,14 +25,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveImageUrl } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, ChevronDown, ChevronRight, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, Upload, X } from "lucide-react";
 import { GalleryManager } from "@/components/admin/gallery-manager";
 import { StaffManager } from "@/components/admin/staff-manager";
 
 type Tab = "info" | "gallery" | "staff";
 
 export default function AdminRetreatDetailPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { adminUser, isLoading: authLoading } = useAuth();
   const params = useParams();
   const router = useRouter();
   const retreatId = Number(params.id);
@@ -42,7 +51,7 @@ export default function AdminRetreatDetailPage() {
     is_published: true,
   });
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-  const [showMapFields, setShowMapFields] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -58,13 +67,13 @@ export default function AdminRetreatDetailPage() {
   []);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+    if (!authLoading && !adminUser) {
+      router.push("/admin/login");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, adminUser, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated || fetched.current || !retreatId) return;
+    if (authLoading || !adminUser || fetched.current || !retreatId) return;
     fetched.current = true;
 
     Promise.all([getRetreat(retreatId), getCategories({ page_size: 100 })])
@@ -77,11 +86,11 @@ export default function AdminRetreatDetailPage() {
           slug: r.slug,
           category_id: r.category_id,
           description: r.description ?? "",
-          email: r.email ?? "",
-          phone: r.phone ?? "",
+          email: r.email,
+          phone: r.phone,
           address: r.address ?? "",
-          latitude: String(r.latitude ?? ""),
-          longitude: String(r.longitude ?? ""),
+          latitude: String(r.latitude),
+          longitude: String(r.longitude),
           budget_min: String(r.budget_min ?? ""),
           budget_max: String(r.budget_max ?? ""),
           social_links_instagram: links?.instagram ?? "",
@@ -91,7 +100,7 @@ export default function AdminRetreatDetailPage() {
       })
       .catch(() => toast.error("Failed to load retreat"))
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated, retreatId]);
+  }, [authLoading, adminUser, retreatId]);
 
   function handleNameChange(val: string) {
     setForm((f) => ({
@@ -102,6 +111,12 @@ export default function AdminRetreatDetailPage() {
   }
 
   async function handleSave() {
+    const errs: Record<string, string> = {};
+    if (!form.email.trim()) errs.email = "Email is required";
+    if (!form.phone.trim()) errs.phone = "Phone is required";
+    if (!form.latitude || !form.longitude) errs.location = "Location is required";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     setSaving(true);
     try {
       const links: Record<string, string> = {};
@@ -113,11 +128,11 @@ export default function AdminRetreatDetailPage() {
         slug: form.slug,
         category_id: form.category_id,
         description: form.description || null,
-        email: form.email || null,
-        phone: form.phone || null,
+        email: form.email,
+        phone: form.phone,
         address: form.address || null,
-        latitude: form.latitude ? Number(form.latitude) : null,
-        longitude: form.longitude ? Number(form.longitude) : null,
+        latitude: Number(form.latitude),
+        longitude: Number(form.longitude),
         budget_min: form.budget_min ? Number(form.budget_min) : null,
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         social_links: links,
@@ -263,58 +278,28 @@ export default function AdminRetreatDetailPage() {
                   <div className="space-y-2">
                     <Label htmlFor="email">
                       <Mail className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
-                      Email
+                      Email <span className="text-destructive">*</span>
                     </Label>
-                    <Input id="email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                    <Input id="email" type="email" value={form.email} onChange={(e) => { setErrors({}); setForm((f) => ({ ...f, email: e.target.value })); }} />
+                    {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">
                       <Phone className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
-                      Phone
+                      Phone <span className="text-destructive">*</span>
                     </Label>
-                    <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                    <Input id="phone" value={form.phone} onChange={(e) => { setErrors({}); setForm((f) => ({ ...f, phone: e.target.value })); }} />
+                    {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">
-                      <MapPin className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
-                      Address
-                    </Label>
-                    <Input id="address" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowMapFields(!showMapFields)}
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showMapFields ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      Coordinates
-                    </button>
-                    {showMapFields && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="latitude">Latitude</Label>
-                          <Input id="latitude" type="number" step="any" value={form.latitude} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="longitude">Longitude</Label>
-                          <Input id="longitude" type="number" step="any" value={form.longitude} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
-                        </div>
-                        {form.latitude && form.longitude && (
-                          <div className="md:col-span-2">
-                            <a
-                              href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                            >
-                              <MapPin className="h-3 w-3" />
-                              View on Google Maps
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <LocationPicker
+                      address={form.address}
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      required
+                      onChange={(data) => { setErrors({}); setForm((f) => ({ ...f, ...data })); }}
+                    />
+                    {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
                   </div>
                 </div>
               </CardContent>

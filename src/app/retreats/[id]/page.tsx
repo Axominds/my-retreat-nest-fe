@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RetreatMapWrapper } from "@/components/ui/retreat-map-wrapper";
 import {
   MapPin,
   Mail,
@@ -24,6 +25,7 @@ import {
   ImageIcon,
   MessageSquare,
   Info,
+  ExternalLink,
 } from "lucide-react";
 
 interface RetreatDetailPageProps {
@@ -231,6 +233,20 @@ export default async function RetreatDetailPage({
                       <span className="mt-1">{retreat.address}</span>
                     </div>
                   )}
+                  <RetreatMapWrapper
+                    latitude={retreat.latitude}
+                    longitude={retreat.longitude}
+                    address={retreat.address}
+                  />
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${retreat.latitude},${retreat.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Get Directions
+                  </a>
                   {retreat.email && (
                     <div className="flex items-center gap-3 text-sm">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">

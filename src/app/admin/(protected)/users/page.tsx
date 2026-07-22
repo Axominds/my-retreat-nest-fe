@@ -17,7 +17,7 @@ import { PaginationControls } from "@/components/retreats/pagination-controls";
 import { Trash2, Search, AlertTriangle, UsersIcon, X, Mail, Phone, Shield, ArrowUpDown } from "lucide-react";
 
 export default function AdminUsersPage() {
-  const { isAuthenticated, isLoading: authLoading, user: currentUser } = useAuth();
+  const { adminUser, isLoading: authLoading, user: currentUser } = useAuth();
   const router = useRouter();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -30,13 +30,13 @@ export default function AdminUsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+    if (!authLoading && !adminUser) {
+      router.push("/admin/login");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, adminUser, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
+    if (authLoading || !adminUser) return;
     const sortOpts = sortOrder === "name"
       ? { sort_by: "name", sort_order: "asc" }
       : { sort_by: "user_id", sort_order: "desc" };
@@ -52,7 +52,7 @@ export default function AdminUsersPage() {
       })
       .catch(() => toast.error("Failed to load users"))
       .finally(() => setInitialLoading(false));
-  }, [authLoading, isAuthenticated, page, debouncedSearch, sortOrder]);
+  }, [authLoading, adminUser, page, debouncedSearch, sortOrder]);
 
   async function handleDelete() {
     if (!deleteTarget) return;

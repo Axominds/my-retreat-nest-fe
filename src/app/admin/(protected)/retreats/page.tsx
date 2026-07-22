@@ -20,7 +20,16 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { resolveImageUrl } from "@/lib/constants";
 import { PaginationControls } from "@/components/retreats/pagination-controls";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
+
+const LocationPicker = dynamic(
+  () =>
+    import("@/components/admin/location-picker").then(
+      (m) => ({ default: m.LocationPicker }),
+    ),
+  { ssr: false },
+);
 import {
   Pencil,
   Trash2,
@@ -43,7 +52,7 @@ import {
 type SortKey = "name" | "newest" | "oldest" | "status";
 
 export default function AdminRetreatsPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { adminUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   const [retreats, setRetreats] = useState<Retreat[]>([]);
@@ -59,15 +68,16 @@ export default function AdminRetreatsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [deleteTarget, setDeleteTarget] = useState<Retreat | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", category_id: 0, description: "", email: "", phone: "", address: "", latitude: "", longitude: "", budget_min: "", budget_max: "", social_links_instagram: "", social_links_facebook: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+    if (!authLoading && !adminUser) {
+      router.push("/admin/login");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, adminUser, router]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
+    if (authLoading || !adminUser) return;
     const sortParams: Record<string, string> = {};
     if (sortKey === "name") sortParams.sort_by = "name";
     else if (sortKey === "oldest") sortParams.sort_by = "oldest";
@@ -92,7 +102,7 @@ export default function AdminRetreatsPage() {
       })
       .catch(() => toast.error("Failed to load retreats"))
       .finally(() => setInitialLoading(false));
-  }, [authLoading, isAuthenticated, page, debouncedSearch, categoryFilter, statusFilter, sortKey]);
+  }, [authLoading, adminUser, page, debouncedSearch, categoryFilter, statusFilter, sortKey]);
 
   const slugify = useCallback((val: string) =>
     val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
@@ -102,10 +112,20 @@ export default function AdminRetreatsPage() {
 
   function resetForm() {
     setForm({ name: "", slug: "", category_id: 0, description: "", email: "", phone: "", address: "", latitude: "", longitude: "", budget_min: "", budget_max: "", social_links_instagram: "", social_links_facebook: "" });
+    setErrors({});
     setShowCreate(false);
   }
 
   async function handleCreate() {
+    const errs: Record<string, string> = {};
+    if (!form.email.trim()) errs.email = "Email is required";
+    if (!form.phone.trim()) errs.phone = "Phone is required";
+    if (!form.latitude || !form.longitude) errs.location = "Location is required";
+    if (!form.name.trim()) errs.name = "Name is required";
+    if (!form.slug.trim()) errs.slug = "Slug is required";
+    if (!form.category_id) errs.category = "Category is required";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     try {
       const links: Record<string, string> = {};
       if (form.social_links_instagram) links.instagram = form.social_links_instagram;
@@ -116,11 +136,11 @@ export default function AdminRetreatsPage() {
         slug: form.slug,
         category_id: form.category_id,
         description: form.description || null,
-        email: form.email || null,
-        phone: form.phone || null,
+        email: form.email,
+        phone: form.phone,
         address: form.address || null,
-        latitude: form.latitude ? Number(form.latitude) : null,
-        longitude: form.longitude ? Number(form.longitude) : null,
+        latitude: Number(form.latitude),
+        longitude: Number(form.longitude),
         budget_min: form.budget_min ? Number(form.budget_min) : null,
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         social_links: links,
@@ -236,11 +256,13 @@ export default function AdminRetreatsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="dlg-name">Name <span className="text-destructive">*</span></Label>
-              <Input id="dlg-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, slug: slugify(e.target.value) }))} />
+              <Input id="dlg-name" value={form.name} onChange={(e) => { setErrors({}); setForm((f) => ({ ...f, name: e.target.value, slug: slugify(e.target.value) })); }} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="dlg-slug">Slug <span className="text-destructive">*</span></Label>
-              <Input id="dlg-slug" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
+              <Input id="dlg-slug" value={form.slug} onChange={(e) => { setErrors({}); setForm((f) => ({ ...f, slug: e.target.value })); }} />
+              {errors.slug && <p className="text-xs text-destructive">{errors.slug}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="dlg-category">Category <span className="text-destructive">*</span></Label>
@@ -254,24 +276,24 @@ export default function AdminRetreatsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dlg-email">Email</Label>
-              <Input id="dlg-email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+              <Label htmlFor="dlg-email">Email <span className="text-destructive">*</span></Label>
+              <Input id="dlg-email" value={form.email} onChange={(e) => { setErrors({}); setForm((f) => ({ ...f, email: e.target.value })); }} />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dlg-phone">Phone</Label>
-              <Input id="dlg-phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+              <Label htmlFor="dlg-phone">Phone <span className="text-destructive">*</span></Label>
+              <Input id="dlg-phone" value={form.phone} onChange={(e) => { setErrors({}); setForm((f) => ({ ...f, phone: e.target.value })); }} />
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="dlg-address">Address</Label>
-              <Input id="dlg-address" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dlg-lat">Latitude</Label>
-              <Input id="dlg-lat" type="number" step="any" value={form.latitude} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dlg-lng">Longitude</Label>
-              <Input id="dlg-lng" type="number" step="any" value={form.longitude} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
+              <LocationPicker
+                address={form.address}
+                latitude={form.latitude}
+                longitude={form.longitude}
+                required
+                onChange={(data) => { setErrors({}); setForm((f) => ({ ...f, ...data })); }}
+              />
+              {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="dlg-budget-min">Budget Min</Label>
