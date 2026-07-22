@@ -188,7 +188,11 @@ export default function AdminRetreatsPage() {
           </div>
           <div className="flex gap-2.5 flex-wrap">
             <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v ?? "all"); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-40 bg-background"><SelectValue placeholder="All categories" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-40 bg-background">
+                <SelectValue placeholder="All categories">
+                  {categoryFilter !== "all" ? categoryName(Number(categoryFilter)) : "All categories"}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All categories</SelectItem>
                 {categories.map((c) => (
@@ -197,7 +201,11 @@ export default function AdminRetreatsPage() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-32 bg-background"><SelectValue placeholder="All status" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-32 bg-background">
+                <SelectValue placeholder="All status">
+                  {statusFilter === "all" ? "All status" : statusFilter === "published" ? "Published" : "Draft"}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All status</SelectItem>
                 <SelectItem value="published">Published</SelectItem>
