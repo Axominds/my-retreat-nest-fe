@@ -13,32 +13,57 @@ export class ApiError extends Error {
   }
 }
 
-const tokens: Record<string, string | null> = {};
-let activeType: string | null = null;
+function storageKey(type: string): string {
+  return `access_token_${type}`;
+}
+
+const ACTIVE_TYPE_KEY = "active_auth_type";
 
 export function setAccessToken(type: string, token: string | null) {
-  tokens[type] = token;
-  if (token !== null) {
-    activeType = type;
-  } else if (activeType === type) {
-    activeType = Object.keys(tokens).find((k) => tokens[k] !== null) ?? null;
+  if (typeof window === "undefined") return;
+  const key = storageKey(type);
+  if (token === null) {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, token);
   }
 }
 
 export function getAccessToken(): string | null {
-  return activeType ? tokens[activeType] ?? null : null;
+  if (typeof window === "undefined") return null;
+  const activeType = localStorage.getItem(ACTIVE_TYPE_KEY);
+  if (!activeType) return null;
+  return localStorage.getItem(storageKey(activeType));
 }
 
 export function getAccessTokenFor(type: string): string | null {
-  return tokens[type] ?? null;
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(storageKey(type));
 }
 
 export function setActiveType(type: string | null) {
-  activeType = type;
+  if (typeof window === "undefined") return;
+  if (type === null) {
+    localStorage.removeItem(ACTIVE_TYPE_KEY);
+  } else {
+    localStorage.setItem(ACTIVE_TYPE_KEY, type);
+  }
 }
 
 export function getActiveType(): string | null {
-  return activeType;
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACTIVE_TYPE_KEY);
+}
+
+export function clearTokens() {
+  if (typeof window === "undefined") return;
+  const keys = Object.keys(localStorage);
+  for (const key of keys) {
+    if (key.startsWith("access_token_")) {
+      localStorage.removeItem(key);
+    }
+  }
+  localStorage.removeItem(ACTIVE_TYPE_KEY);
 }
 
 async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {

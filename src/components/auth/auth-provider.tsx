@@ -9,7 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { setAccessToken, setActiveType } from "@/lib/api/client";
+import { setAccessToken, setActiveType, clearTokens } from "@/lib/api/client";
 import { login as apiLogin, logout as apiLogout, refreshToken as apiRefresh } from "@/lib/api/auth";
 import type { User } from "@/types/user";
 
@@ -126,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore logout errors
     }
     if (!loginType) {
+      clearTokens();
       setState({
         normalUser: null,
         adminUser: null,
@@ -136,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
+    setAccessToken(loginType, null);
     setState((prev) => {
       const updated = { ...prev };
       if (loginType === "admin") {
