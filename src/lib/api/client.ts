@@ -19,6 +19,12 @@ function storageKey(type: string): string {
 
 const ACTIVE_TYPE_KEY = "active_auth_type";
 
+let forcedLoginType: string | null = null;
+
+export function setForcedLoginType(type: string | null) {
+  forcedLoginType = type;
+}
+
 export function setAccessToken(type: string, token: string | null) {
   if (typeof window === "undefined") return;
   const key = storageKey(type);
@@ -31,6 +37,9 @@ export function setAccessToken(type: string, token: string | null) {
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
+  if (forcedLoginType) {
+    return localStorage.getItem(storageKey(forcedLoginType));
+  }
   const activeType = localStorage.getItem(ACTIVE_TYPE_KEY);
   if (!activeType) return null;
   return localStorage.getItem(storageKey(activeType));

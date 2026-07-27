@@ -7,6 +7,7 @@ import { getGalleryCategories } from "@/lib/api/gallery-categories";
 import { RetreatGallery } from "@/components/retreats/retreat-gallery";
 import { ReviewList } from "@/components/reviews/review-list";
 import { WishlistFloatingButton } from "@/components/wishlist/wishlist-floating-button";
+import { RetreatDetailWishlistButton } from "@/components/wishlist/retreat-detail-wishlist-button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
@@ -341,6 +342,8 @@ export default async function RetreatDetailPage({
                     <CalendarCheck className="h-4 w-4" />
                     Book Now
                   </a>
+
+                  <RetreatDetailWishlistButton retreatId={retreatId} />
 
                   <Separator />
 

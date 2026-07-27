@@ -1,17 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Heart, Menu, LogOut, User, TreePine } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Heart, Menu, LogOut, User, TreePine, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 const navLinks: { href: string; label: string }[] = [];
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -42,34 +50,41 @@ export function Header() {
         </nav>
 
         <div className="flex items-center space-x-3">
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center">
             {isLoading ? null : isAuthenticated ? (
-              <>
-                <Link href="/wishlist">
-                  <Button variant="ghost" size="icon" aria-label="Wishlist">
-                    <Heart className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/account">
-                  <Button variant="ghost" size="icon" aria-label="Account">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <span className="text-sm text-muted-foreground">{user?.name}</span>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
-              </>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-3" />}>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    {user?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium max-w-[120px] truncate">{user?.name}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => router.push("/wishlist")}>
+                    <Heart className="h-4 w-4 mr-2" />
+                    Wishlist
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/account")}>
+                    <User className="h-4 w-4 mr-2" />
+                    Account
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <>
+              <div className="flex items-center space-x-3">
                 <Link href="/login">
                   <Button variant="ghost">Login</Button>
                 </Link>
                 <Link href="/signup">
                   <Button>Sign Up</Button>
                 </Link>
-              </>
+              </div>
             )}
           </div>
 
@@ -93,6 +108,16 @@ export function Header() {
                 <hr />
                 {isLoading ? null : isAuthenticated ? (
                   <>
+                    <div className="flex items-center gap-2 pb-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                        {user?.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{user?.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      </div>
+                    </div>
+                    <hr />
                     <Link
                       href="/wishlist"
                       onClick={() => setOpen(false)}
