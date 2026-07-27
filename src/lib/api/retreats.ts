@@ -21,6 +21,8 @@ export interface RetreatPayload {
   budget_min?: number | null;
   budget_max?: number | null;
   is_published?: boolean;
+  thumbnail_image?: string | null;
+  banner_image?: string | null;
 }
 
 export async function getRetreats(params?: {
@@ -119,6 +121,14 @@ export async function uploadRetreatBanner(
 ): Promise<Retreat> {
   const response = await postForm<Retreat>(`/retreats/${retreatId}/banner/`, formData, { auth: true });
   return response.data;
+}
+
+export async function deleteRetreatThumbnail(retreatId: number): Promise<void> {
+  await del(`/retreats/${retreatId}/thumbnail/`, { auth: true });
+}
+
+export async function deleteRetreatBanner(retreatId: number): Promise<void> {
+  await del(`/retreats/${retreatId}/banner/`, { auth: true });
 }
 
 export async function updateGallery(

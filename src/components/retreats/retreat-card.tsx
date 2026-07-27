@@ -65,11 +65,6 @@ export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0 }
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent h-20 pointer-events-none" />
-          {price && (
-            <div className="absolute bottom-2.5 left-3">
-              <span className="text-sm font-semibold text-white drop-shadow-sm">{price}</span>
-            </div>
-          )}
         </div>
       </Link>
       {wishlistButton && (
@@ -78,32 +73,40 @@ export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0 }
         </div>
       )}
 
-      <div className="p-4 space-y-2.5">
-        <div className="flex items-center gap-2">
-          <Link href={`/retreats/${retreat.retreat_id}`} className="min-w-0 flex-1">
-            <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">
-              {retreat.name}
-            </h3>
-          </Link>
-          {retreat.average_rating != null && (
-            <div className="flex items-center gap-1 shrink-0">
-              <RatingStars rating={retreat.average_rating} />
-              <span className="text-xs text-muted-foreground">{retreat.average_rating.toFixed(1)}</span>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            <Link href={`/retreats/${retreat.retreat_id}`}>
+              <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">
+                {retreat.name}
+              </h3>
+            </Link>
+            {retreat.address && (
+              <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span className="line-clamp-1">{retreat.address}</span>
+              </div>
+            )}
+          </div>
+          {price && (
+            <div className="shrink-0 self-center text-right pr-2">
+              <span className="text-base font-bold text-primary">{price}</span>
             </div>
           )}
-          {categoryName && (
-            <Badge variant="secondary" className="text-xs px-2.5 py-0.5 shrink-0">
-              {categoryName}
-            </Badge>
-          )}
-        </div>
-
-        {retreat.address && (
-          <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            <span className="line-clamp-1">{retreat.address}</span>
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            {categoryName && (
+              <Badge variant="secondary" className="text-xs px-2.5 py-0.5">
+                {categoryName}
+              </Badge>
+            )}
+            {retreat.average_rating != null && (
+              <div className="flex items-center gap-1">
+                <RatingStars rating={retreat.average_rating} />
+                <span className="text-xs text-muted-foreground">{retreat.average_rating.toFixed(1)}</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

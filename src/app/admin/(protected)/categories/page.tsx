@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryThumbnail } from "@/lib/api/categories";
+import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryThumbnail, deleteCategoryThumbnail } from "@/lib/api/categories";
 import { resolveImageUrl } from "@/lib/constants";
 import type { Category } from "@/types/category";
 import type { PaginationMeta } from "@/types/api";
@@ -36,6 +36,8 @@ export default function AdminCategoriesPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [savingImage, setSavingImage] = useState(false);
+  const [imageCleared, setImageCleared] = useState(false);
+  const [imageCacheBust, setImageCacheBust] = useState(0);
   const imageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function AdminCategoriesPage() {
     setForm({ name: "", description: "" });
     setImageFile(null);
     setImagePreview(null);
+    setImageCleared(false);
     setEditingId(null);
     setShowCreate(false);
   }
@@ -78,8 +81,17 @@ export default function AdminCategoriesPage() {
   async function handleUpdate() {
     if (!editingId || !form.name.trim()) { toast.error("Name is required"); return; }
     try {
-      const updated = await updateCategory(editingId, { name: form.name, description: form.description || null });
-      setCategories((prev) => prev.map((c) => (c.category_id === editingId ? updated : c)));
+      const result = await updateCategory(editingId, { name: form.name, description: form.description || null });
+      let finalCat = { ...result };
+      if (imageCleared) {
+        try {
+          await deleteCategoryThumbnail(editingId);
+          finalCat = { ...finalCat, thumbnail_image: null };
+        } catch {
+          toast.error("Failed to clear image");
+        }
+      }
+      setCategories((prev) => prev.map((c) => (c.category_id === editingId ? finalCat : c)));
       toast.success("Category updated");
       resetForm();
     } catch {
@@ -97,6 +109,7 @@ export default function AdminCategoriesPage() {
       setCategories((prev) => prev.map((c) => (c.category_id === editingId ? withImage : c)));
       setImageFile(null);
       setImagePreview(null);
+      setImageCacheBust(Date.now());
       toast.success("Image uploaded");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to upload image");
@@ -123,12 +136,14 @@ export default function AdminCategoriesPage() {
     setForm({ name: cat.name, description: cat.description ?? "" });
     setImageFile(null);
     setImagePreview(null);
+    setImageCleared(false);
   }
 
   function handleImageSelect(f: File | null) {
     setImageFile(f);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(f ? URL.createObjectURL(f) : null);
+    if (f) setImageCleared(false);
   }
 
   if (authLoading || initialLoading) {
@@ -217,9 +232,9 @@ export default function AdminCategoriesPage() {
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
                     <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                   </div>
-                ) : editingCategory?.thumbnail_image ? (
+                ) : editingCategory?.thumbnail_image && !imageCleared ? (
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
-                    <img src={resolveImageUrl(editingCategory.thumbnail_image) ?? ""} alt="" className="w-full h-full object-cover" />
+                    <img src={`${resolveImageUrl(editingCategory.thumbnail_image)}?t=${imageCacheBust}`} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
@@ -235,15 +250,15 @@ export default function AdminCategoriesPage() {
                 />
                 <Button variant="outline" size="sm" onClick={() => imageRef.current?.click()}>
                   <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  {editingCategory?.thumbnail_image ? "Change" : "Upload"}
+                  {editingCategory?.thumbnail_image && !imageCleared ? "Change" : "Upload"}
                 </Button>
                 {imageFile && (
                   <Button size="sm" onClick={handleSaveImage} disabled={savingImage}>
                     {savingImage ? "Saving..." : "Save"}
                   </Button>
                 )}
-                {(imagePreview || editingCategory?.thumbnail_image) && (
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                {(imagePreview || (editingCategory?.thumbnail_image && !imageCleared)) && (
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setImageFile(null); setImagePreview(null); setImageCleared(true); if (imagePreview) URL.revokeObjectURL(imagePreview); }}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 )}
@@ -317,7 +332,7 @@ export default function AdminCategoriesPage() {
             >
               <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
                 {cat.thumbnail_image ? (
-                  <img src={resolveImageUrl(cat.thumbnail_image) ?? ""} alt="" className="w-full h-full object-cover" />
+                  <img src={`${resolveImageUrl(cat.thumbnail_image)}?t=${imageCacheBust}`} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <FolderTree className="h-5 w-5 text-muted-foreground" />

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
-import { getRetreat, updateRetreat, uploadRetreatThumbnail, uploadRetreatBanner } from "@/lib/api/retreats";
+import { getRetreat, updateRetreat, uploadRetreatThumbnail, uploadRetreatBanner, deleteRetreatThumbnail, deleteRetreatBanner } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
 import dynamic from "next/dynamic";
 
@@ -58,6 +58,10 @@ export default function AdminRetreatDetailPage() {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [savingThumbnail, setSavingThumbnail] = useState(false);
   const [savingBanner, setSavingBanner] = useState(false);
+  const [thumbnailCleared, setThumbnailCleared] = useState(false);
+  const [bannerCleared, setBannerCleared] = useState(false);
+  const [thumbnailCacheBust, setThumbnailCacheBust] = useState(0);
+  const [bannerCacheBust, setBannerCacheBust] = useState(0);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const fetched = useRef(false);
@@ -138,7 +142,29 @@ export default function AdminRetreatDetailPage() {
         social_links: links,
         is_published: form.is_published,
       });
-      setRetreat(updated);
+
+      let finalRetreat = { ...updated };
+
+      if (thumbnailCleared) {
+        try {
+          await deleteRetreatThumbnail(retreatId);
+          finalRetreat.thumbnail_image = null;
+        } catch {
+          toast.error("Failed to clear thumbnail");
+        }
+      }
+      if (bannerCleared) {
+        try {
+          await deleteRetreatBanner(retreatId);
+          finalRetreat.banner_image = null;
+        } catch {
+          toast.error("Failed to clear banner");
+        }
+      }
+
+      setRetreat(finalRetreat);
+      setThumbnailCleared(false);
+      setBannerCleared(false);
       toast.success("Retreat saved");
     } catch {
       toast.error("Failed to save retreat");
@@ -157,6 +183,7 @@ export default function AdminRetreatDetailPage() {
       setRetreat(updated);
       setThumbnailFile(null);
       setThumbnailPreview(null);
+      setThumbnailCacheBust(Date.now());
       toast.success("Thumbnail uploaded");
     } catch {
       toast.error("Failed to upload thumbnail");
@@ -175,6 +202,7 @@ export default function AdminRetreatDetailPage() {
       setRetreat(updated);
       setBannerFile(null);
       setBannerPreview(null);
+      setBannerCacheBust(Date.now());
       toast.success("Banner uploaded");
     } catch {
       toast.error("Failed to upload banner");
@@ -237,6 +265,10 @@ export default function AdminRetreatDetailPage() {
             Preview
           </Button>
         </Link>
+        <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5 shrink-0">
+          <Save className="h-3.5 w-3.5" />
+          {saving ? "Saving..." : "Save"}
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -378,9 +410,9 @@ export default function AdminRetreatDetailPage() {
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
                         <img src={thumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
                       </div>
-                    ) : retreat.thumbnail_image ? (
+                    ) : retreat.thumbnail_image && !thumbnailCleared ? (
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
-                        <img src={resolveImageUrl(retreat.thumbnail_image) ?? ""} alt="" className="w-full h-full object-cover" />
+                        <img src={`${resolveImageUrl(retreat.thumbnail_image)}?t=${thumbnailCacheBust}`} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
@@ -397,19 +429,20 @@ export default function AdminRetreatDetailPage() {
                         setThumbnailFile(f);
                         if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
                         setThumbnailPreview(f ? URL.createObjectURL(f) : null);
+                        if (f) setThumbnailCleared(false);
                       }}
                     />
                     <Button variant="outline" size="sm" onClick={() => thumbnailInputRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5 mr-1.5" />
-                      {retreat.thumbnail_image ? "Change" : "Upload"}
+                      {retreat.thumbnail_image && !thumbnailCleared ? "Change" : "Upload"}
                     </Button>
                     {thumbnailFile && (
                       <Button size="sm" onClick={handleSaveThumbnail} disabled={savingThumbnail}>
                         {savingThumbnail ? "Saving..." : "Save"}
                       </Button>
                     )}
-                    {(thumbnailPreview || retreat.thumbnail_image) && (
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setThumbnailFile(null); setThumbnailPreview(null); }}>
+                    {(thumbnailPreview || (retreat.thumbnail_image && !thumbnailCleared)) && (
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setThumbnailFile(null); setThumbnailPreview(null); setThumbnailCleared(true); if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview); }}>
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -424,9 +457,9 @@ export default function AdminRetreatDetailPage() {
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
                         <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
                       </div>
-                    ) : retreat.banner_image ? (
+                    ) : retreat.banner_image && !bannerCleared ? (
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted shrink-0">
-                        <img src={resolveImageUrl(retreat.banner_image) ?? ""} alt="" className="w-full h-full object-cover" />
+                        <img src={`${resolveImageUrl(retreat.banner_image)}?t=${bannerCacheBust}`} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center shrink-0">
@@ -443,19 +476,20 @@ export default function AdminRetreatDetailPage() {
                         setBannerFile(f);
                         if (bannerPreview) URL.revokeObjectURL(bannerPreview);
                         setBannerPreview(f ? URL.createObjectURL(f) : null);
+                        if (f) setBannerCleared(false);
                       }}
                     />
                     <Button variant="outline" size="sm" onClick={() => bannerInputRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5 mr-1.5" />
-                      {retreat.banner_image ? "Change" : "Upload"}
+                      {retreat.banner_image && !bannerCleared ? "Change" : "Upload"}
                     </Button>
                     {bannerFile && (
                       <Button size="sm" onClick={handleSaveBanner} disabled={savingBanner}>
                         {savingBanner ? "Saving..." : "Save"}
                       </Button>
                     )}
-                    {(bannerPreview || retreat.banner_image) && (
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setBannerFile(null); setBannerPreview(null); }}>
+                    {(bannerPreview || (retreat.banner_image && !bannerCleared)) && (
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { setBannerFile(null); setBannerPreview(null); setBannerCleared(true); if (bannerPreview) URL.revokeObjectURL(bannerPreview); }}>
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -507,9 +541,7 @@ export default function AdminRetreatDetailPage() {
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   />
                 </div>
-                <Button onClick={handleSave} disabled={saving} className="w-full mt-4">
-                  <Save className="h-4 w-4 mr-2" /> {saving ? "Saving..." : "Save Changes"}
-                </Button>
+
               </CardContent>
             </Card>
           </div>

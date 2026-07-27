@@ -39,3 +39,8 @@ export async function uploadCategoryThumbnail(id: number, formData: FormData): P
   const response = await postForm<Category>(`/categories/${id}/thumbnail/`, formData, { auth: true });
   return response.data;
 }
+
+export async function deleteCategoryThumbnail(id: number): Promise<Category> {
+  const response = await del<Category>(`/categories/${id}/thumbnail/`, { auth: true });
+  return response.data;
+}

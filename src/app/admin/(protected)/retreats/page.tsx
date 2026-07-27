@@ -386,11 +386,17 @@ export default function AdminRetreatsPage() {
             >
               {/* Thumbnail */}
               <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-muted">
-                <img
-                  src={resolveImageUrl(retreat.thumbnail_image) ?? ""}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+                {resolveImageUrl(retreat.thumbnail_image) ? (
+                  <img
+                    src={resolveImageUrl(retreat.thumbnail_image)!}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
               </div>
 
               {/* Info */}
