@@ -25,13 +25,13 @@ export function Header() {
 
   if (pathname === "/admin/login") return null;
 
-  const isAdmin = typeof window !== "undefined" && sessionStorage.getItem("portal_type") === "admin";
+  const isAdmin = pathname.startsWith("/admin");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between pl-4">
         <div className="flex items-center gap-2 -ml-2">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={isAdmin ? "/admin" : "/"} className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
               <TreePine className="h-5 w-5 text-primary" />
             </div>

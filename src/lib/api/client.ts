@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/lib/constants";
+import { API_BASE_URL, getPortalType } from "@/lib/constants";
 import type { ApiEnvelope } from "@/types/api";
 
 export class ApiError extends Error {
@@ -35,7 +35,7 @@ export function setAccessToken(type: string, token: string | null) {
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  const portalType = sessionStorage.getItem("portal_type");
+  const portalType = getPortalType();
   if (portalType) {
     return localStorage.getItem(storageKey(portalType));
   }
@@ -62,9 +62,7 @@ export function clearTokens() {
 
 function getLoginType(): string | null {
   if (typeof window === "undefined") return null;
-  const portalType = sessionStorage.getItem("portal_type");
-  if (portalType) return portalType;
-  return forcedLoginType;
+  return getPortalType() ?? forcedLoginType;
 }
 
 let refreshPromise: Promise<boolean> | null = null;

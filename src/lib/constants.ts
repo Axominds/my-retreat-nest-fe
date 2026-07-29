@@ -8,6 +8,17 @@ export const COOKIE_MAX_AGE_DAYS = 30;
 export const PORTAL_TYPE_KEY = "portal_type";
 export type PortalType = "normal" | "admin" | "retreat";
 
+export function getPortalType(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(PORTAL_TYPE_KEY);
+}
+
+export function getHomeRoute(): string {
+  const portalType = getPortalType();
+  if (portalType === "admin") return "/admin";
+  return "/";
+}
+
 export function getImageUrl(retreatId: number, galleryId: number): string {
   return `${API_BASE_URL}/retreats/${retreatId}/galleries/${galleryId}/image/`;
 }
