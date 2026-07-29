@@ -8,17 +8,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { setForcedLoginType } from "@/lib/api/client";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isLoading, adminUser, activeLoginType, activateSession } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    setForcedLoginType("admin");
-    return () => setForcedLoginType(null);
-  }, []);
 
   useEffect(() => {
     if (adminUser && activeLoginType !== "admin") {

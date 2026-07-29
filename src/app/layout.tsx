@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ScrollToTop } from "@/components/layout/scroll-to-top";
+import { PortalTypeSetter } from "@/components/layout/portal-type-setter";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <Header />
+          <PortalTypeSetter />
           <main className="flex-1">{children}</main>
           <Footer />
           <ScrollToTop />

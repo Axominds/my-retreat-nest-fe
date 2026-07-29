@@ -21,6 +21,7 @@ export interface RetreatPayload {
   budget_min?: number | null;
   budget_max?: number | null;
   is_published?: boolean;
+  is_featured?: boolean;
   thumbnail_image?: string | null;
   banner_image?: string | null;
 }
@@ -29,6 +30,7 @@ export async function getRetreats(params?: {
   page?: number;
   page_size?: number;
   is_published?: boolean;
+  is_featured?: boolean;
   search?: string;
   category_id?: number;
   sort_by?: string;
@@ -40,6 +42,9 @@ export async function getRetreats(params?: {
   };
   if (params?.is_published !== undefined) {
     queryParams.is_published = params.is_published ? "true" : "false";
+  }
+  if (params?.is_featured !== undefined) {
+    queryParams.is_featured = params.is_featured ? "true" : "false";
   }
   if (params?.search) {
     queryParams.search = params.search;

@@ -1,9 +1,12 @@
 export const API_BASE_URL = "http://localhost:8000";
 
-export const REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
-export const ADMIN_REFRESH_TOKEN_COOKIE_NAME = "admin_refresh_token";
+export const REFRESH_TOKEN_COOKIE_NAME = "refresh_token_normal";
+export const ADMIN_REFRESH_TOKEN_COOKIE_NAME = "refresh_token_admin";
 
 export const COOKIE_MAX_AGE_DAYS = 30;
+
+export const PORTAL_TYPE_KEY = "portal_type";
+export type PortalType = "normal" | "admin" | "retreat";
 
 export function getImageUrl(retreatId: number, galleryId: number): string {
   return `${API_BASE_URL}/retreats/${retreatId}/galleries/${galleryId}/image/`;

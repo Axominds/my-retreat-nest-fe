@@ -25,6 +25,8 @@ export function Header() {
 
   if (pathname === "/admin/login") return null;
 
+  const isAdmin = typeof window !== "undefined" && sessionStorage.getItem("portal_type") === "admin";
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between pl-4">
@@ -61,10 +63,12 @@ export function Header() {
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  {!isAdmin && (
                   <DropdownMenuItem onClick={() => router.push("/wishlist")}>
                     <Heart className="h-4 w-4 mr-2" />
                     Wishlist
                   </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => router.push("/account")}>
                     <User className="h-4 w-4 mr-2" />
                     Account
@@ -118,6 +122,7 @@ export function Header() {
                       </div>
                     </div>
                     <hr />
+                    {!isAdmin && (
                     <Link
                       href="/wishlist"
                       onClick={() => setOpen(false)}
@@ -125,6 +130,7 @@ export function Header() {
                     >
                       Wishlist
                     </Link>
+                    )}
                     <Link
                       href="/account"
                       onClick={() => setOpen(false)}

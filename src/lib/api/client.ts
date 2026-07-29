@@ -17,8 +17,6 @@ function storageKey(type: string): string {
   return `access_token_${type}`;
 }
 
-const ACTIVE_TYPE_KEY = "active_auth_type";
-
 let forcedLoginType: string | null = null;
 
 export function setForcedLoginType(type: string | null) {
@@ -37,31 +35,19 @@ export function setAccessToken(type: string, token: string | null) {
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
+  const portalType = sessionStorage.getItem("portal_type");
+  if (portalType) {
+    return localStorage.getItem(storageKey(portalType));
+  }
   if (forcedLoginType) {
     return localStorage.getItem(storageKey(forcedLoginType));
   }
-  const activeType = localStorage.getItem(ACTIVE_TYPE_KEY);
-  if (!activeType) return null;
-  return localStorage.getItem(storageKey(activeType));
+  return null;
 }
 
 export function getAccessTokenFor(type: string): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(storageKey(type));
-}
-
-export function setActiveType(type: string | null) {
-  if (typeof window === "undefined") return;
-  if (type === null) {
-    localStorage.removeItem(ACTIVE_TYPE_KEY);
-  } else {
-    localStorage.setItem(ACTIVE_TYPE_KEY, type);
-  }
-}
-
-export function getActiveType(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACTIVE_TYPE_KEY);
 }
 
 export function clearTokens() {
@@ -72,7 +58,56 @@ export function clearTokens() {
       localStorage.removeItem(key);
     }
   }
-  localStorage.removeItem(ACTIVE_TYPE_KEY);
+}
+
+function getLoginType(): string | null {
+  if (typeof window === "undefined") return null;
+  const portalType = sessionStorage.getItem("portal_type");
+  if (portalType) return portalType;
+  return forcedLoginType;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function attemptRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const loginType = getLoginType();
+      if (!loginType) return false;
+      const res = await fetch("/api/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login_type: loginType }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.data?.access_token) {
+        clearTokens();
+        return false;
+      }
+      setAccessToken(loginType, json.data.access_token);
+      return true;
+    } catch {
+      clearTokens();
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
+function redirectToLogin(loginType: string | null): never {
+  clearTokens();
+  const target = loginType === "admin" ? "/admin/login" : "/login";
+  if (typeof window !== "undefined") {
+    window.location.href = target;
+  }
+  throw new ApiError(401, {
+    data: null,
+    message: "Session expired.",
+    meta: null,
+  });
 }
 
 async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
@@ -111,9 +146,17 @@ export async function get<T>(
       url.searchParams.set(key, String(value));
     });
   }
-  const response = await fetch(url.toString(), {
-    headers: buildHeaders(options?.auth ?? false),
-  });
+  let headers = buildHeaders(options?.auth ?? false);
+  const response = await fetch(url.toString(), { headers });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildHeaders(true);
+      const retryResponse = await fetch(url.toString(), { headers });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
   return parseResponse<T>(response);
 }
 
@@ -122,11 +165,25 @@ export async function post<T>(
   body?: unknown,
   options?: { auth?: boolean }
 ): Promise<ApiEnvelope<T>> {
+  let headers = buildHeaders(options?.auth ?? false);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: buildHeaders(options?.auth ?? false),
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildHeaders(true);
+      const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
+        method: "POST",
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
   return parseResponse<T>(response);
 }
 
@@ -135,11 +192,25 @@ export async function patch<T>(
   body?: unknown,
   options?: { auth?: boolean }
 ): Promise<ApiEnvelope<T>> {
+  let headers = buildHeaders(options?.auth ?? false);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "PATCH",
-    headers: buildHeaders(options?.auth ?? false),
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildHeaders(true);
+      const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
+        method: "PATCH",
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
   return parseResponse<T>(response);
 }
 
@@ -147,10 +218,23 @@ export async function del<T>(
   path: string,
   options?: { auth?: boolean }
 ): Promise<ApiEnvelope<T>> {
+  let headers = buildHeaders(options?.auth ?? false);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",
-    headers: buildHeaders(options?.auth ?? false),
+    headers,
   });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildHeaders(true);
+      const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
+        method: "DELETE",
+        headers,
+      });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
   return parseResponse<T>(response);
 }
 
@@ -159,15 +243,32 @@ export async function postForm<T>(
   formData: FormData,
   options?: { auth?: boolean }
 ): Promise<ApiEnvelope<T>> {
-  const headers: Record<string, string> = {};
-  const token = getAccessToken();
-  if (options?.auth && token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  const buildFormHeaders = (): Record<string, string> => {
+    const h: Record<string, string> = {};
+    const token = getAccessToken();
+    if (options?.auth && token) {
+      h["Authorization"] = `Bearer ${token}`;
+    }
+    return h;
+  };
+  let headers = buildFormHeaders();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers,
     body: formData,
   });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildFormHeaders();
+      const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
   return parseResponse<T>(response);
 }

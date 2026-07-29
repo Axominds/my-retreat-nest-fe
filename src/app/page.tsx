@@ -21,6 +21,7 @@ import {
   HeartHandshake,
   ArrowRight,
   Star,
+  Flame,
   Users,
 } from "lucide-react";
 
@@ -39,8 +40,10 @@ export default function HomePage() {
   const { isAuthenticated } = useAuth();
 
   const [featuredRetreats, setFeaturedRetreats] = useState<Retreat[]>([]);
+  const [popularRetreats, setPopularRetreats] = useState<Retreat[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,16 +57,29 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
 
-    getRetreats({ page: 1, page_size: 6, is_published: true })
+    getRetreats({ page: 1, page_size: 6, is_published: true, is_featured: true })
       .then((result) => {
         if (cancelled) return;
         setFeaturedRetreats(result.items);
-        setIsLoading(false);
+        setIsLoadingFeatured(false);
       })
       .catch(() => {
         if (!cancelled) {
           setError("Failed to load data");
-          setIsLoading(false);
+          setIsLoadingFeatured(false);
+        }
+      });
+
+    getRetreats({ page: 1, page_size: 6, is_published: true, sort_by: "rating" })
+      .then((result) => {
+        if (cancelled) return;
+        setPopularRetreats(result.items);
+        setIsLoadingPopular(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("Failed to load data");
+          setIsLoadingPopular(false);
         }
       });
 
@@ -150,6 +166,7 @@ export default function HomePage() {
       ) : (
         <>
           {/* Featured Retreats */}
+          {(isLoadingFeatured || featuredRetreats.length > 0) && (
           <section className="container mx-auto px-4 py-12 md:py-16">
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
@@ -158,11 +175,11 @@ export default function HomePage() {
               </div>
               <h2 className="text-3xl md:text-4xl font-bold">
                 <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Popular Retreats
+                  Featured Retreats
                 </span>
               </h2>
               <p className="text-muted-foreground mt-2">
-                Handpicked stays our guests love most
+                Handpicked stays our team recommends
               </p>
               <Link
                 href="/retreats"
@@ -172,7 +189,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {isLoading ? (
+            {isLoadingFeatured ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="space-y-3">
@@ -212,6 +229,58 @@ export default function HomePage() {
                   </Link>
                 </div>
               </>
+            ) : null}
+          </section>
+          )}
+
+          {/* Popular Retreats */}
+          <section className="container mx-auto px-4 py-12 md:py-16">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 text-xs font-medium mb-3">
+                <Flame className="h-3.5 w-3.5" />
+                Trending
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold">
+                <span className="bg-gradient-to-r from-orange-600 to-rose-600 bg-clip-text text-transparent">
+                  Popular Retreats
+                </span>
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                Top-rated stays our guests love most
+              </p>
+            </div>
+
+            {isLoadingPopular ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-52 w-full rounded-xl" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : popularRetreats.length > 0 ? (
+              <RetreatGrid
+                retreats={popularRetreats}
+                categories={categories}
+                renderWishlistButton={(id) => (
+                  <WishlistButton
+                    retreatId={id}
+                    isWishlisted={wishlistIds.has(id)}
+                    variant="ghost"
+                    className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                    onToggle={(newState) => {
+                      setWishlistIds((prev) => {
+                        const next = new Set(prev);
+                        if (newState) next.add(id);
+                        else next.delete(id);
+                        return next;
+                      });
+                    }}
+                  />
+                )}
+              />
             ) : null}
           </section>
 

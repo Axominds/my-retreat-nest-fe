@@ -9,7 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { setAccessToken, setActiveType, clearTokens } from "@/lib/api/client";
+import { setAccessToken, clearTokens } from "@/lib/api/client";
 import { login as apiLogin, logout as apiLogout, refreshToken as apiRefresh } from "@/lib/api/auth";
 import type { User } from "@/types/user";
 
@@ -97,11 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setActive = useCallback((loginType: string) => {
     setState((prev) => {
       if (loginType === "admin" && prev.adminUser) {
-        setActiveType("admin");
         return { ...prev, activeLoginType: "admin" };
       }
       if (loginType === "normal" && prev.normalUser) {
-        setActiveType("normal");
         return { ...prev, activeLoginType: "normal" };
       }
       return prev;
@@ -113,7 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = response.data.access_token;
     const user = extractUserFromToken(token);
     setSession(loginType, token, user);
-    setActiveType(loginType);
     setState((prev) => ({ ...prev, activeLoginType: loginType as "admin" | "normal", isLoading: false }));
   }, [setSession]);
 
@@ -152,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updated.activeLoginType = other
           ? (loginType === "admin" ? "normal" : "admin")
           : null;
-        setActiveType(updated.activeLoginType);
       }
       return updated;
     });
@@ -201,7 +197,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const next = { ...prev, isLoading: false };
       if (prev.activeLoginType) return next;
       if (types.includes("normal") && prev.normalUser) {
-        setActiveType("normal");
         next.activeLoginType = "normal";
       }
       return next;

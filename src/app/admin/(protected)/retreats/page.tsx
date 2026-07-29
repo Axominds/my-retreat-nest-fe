@@ -65,6 +65,7 @@ export default function AdminRetreatsPage() {
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
+  const [featuredFilter, setFeaturedFilter] = useState<"all" | "featured" | "non-featured">("all");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [deleteTarget, setDeleteTarget] = useState<Retreat | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", category_id: 0, description: "", email: "", phone: "", address: "", latitude: "", longitude: "", budget_min: "", budget_max: "", social_links_instagram: "", social_links_facebook: "" });
@@ -91,6 +92,8 @@ export default function AdminRetreatsPage() {
     if (categoryFilter !== "all") params.category_id = Number(categoryFilter);
     if (statusFilter === "published") params.is_published = true;
     if (statusFilter === "draft") params.is_published = false;
+    if (featuredFilter === "featured") params.is_featured = true;
+    if (featuredFilter === "non-featured") params.is_featured = false;
     Promise.all([
       getRetreats(params),
       getCategories({ page_size: 100 }),
@@ -102,13 +105,13 @@ export default function AdminRetreatsPage() {
       })
       .catch(() => toast.error("Failed to load retreats"))
       .finally(() => setInitialLoading(false));
-  }, [authLoading, adminUser, page, debouncedSearch, categoryFilter, statusFilter, sortKey]);
+  }, [authLoading, adminUser, page, debouncedSearch, categoryFilter, statusFilter, featuredFilter, sortKey]);
 
   const slugify = useCallback((val: string) =>
     val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
   []);
 
-  const isFiltered = searchQuery || categoryFilter !== "all" || statusFilter !== "all";
+  const isFiltered = searchQuery || categoryFilter !== "all" || statusFilter !== "all" || featuredFilter !== "all";
 
   function resetForm() {
     setForm({ name: "", slug: "", category_id: 0, description: "", email: "", phone: "", address: "", latitude: "", longitude: "", budget_min: "", budget_max: "", social_links_instagram: "", social_links_facebook: "" });
@@ -230,6 +233,18 @@ export default function AdminRetreatsPage() {
                 <SelectItem value="all">All status</SelectItem>
                 <SelectItem value="published">Published</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={featuredFilter} onValueChange={(v) => { setFeaturedFilter(v as typeof featuredFilter); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-36 bg-background">
+                <SelectValue placeholder="All featured">
+                  {featuredFilter === "all" ? "All featured" : featuredFilter === "featured" ? "Featured" : "Non-featured"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent side="bottom" align="start">
+                <SelectItem value="all">All featured</SelectItem>
+                <SelectItem value="featured">Featured</SelectItem>
+                <SelectItem value="non-featured">Non-featured</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortKey} onValueChange={(v) => { setSortKey(v as SortKey); setPage(1); }}>
@@ -371,9 +386,9 @@ export default function AdminRetreatsPage() {
           </div>
           <h3 className="text-lg font-semibold">No retreats match your filters</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Try adjusting your search, category, or status filters.
+            Try adjusting your search, category, status, or featured filters.
           </p>
-          <Button variant="outline" onClick={() => { setSearchQuery(""); setCategoryFilter("all"); setStatusFilter("all"); setPage(1); }} className="mt-6">
+          <Button variant="outline" onClick={() => { setSearchQuery(""); setCategoryFilter("all"); setStatusFilter("all"); setFeaturedFilter("all"); setPage(1); }} className="mt-6">
             <X className="h-4 w-4 mr-2" /> Clear Filters
           </Button>
         </div>
@@ -418,6 +433,11 @@ export default function AdminRetreatsPage() {
                   }`}>
                     {retreat.is_published ? "Published" : "Draft"}
                   </span>
+                  {retreat.is_featured && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700">
+                      Featured
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                   {retreat.address && (

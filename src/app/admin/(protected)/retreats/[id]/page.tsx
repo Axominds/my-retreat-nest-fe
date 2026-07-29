@@ -48,7 +48,7 @@ export default function AdminRetreatDetailPage() {
     latitude: "", longitude: "",
     budget_min: "", budget_max: "",
     social_links_instagram: "", social_links_facebook: "",
-    is_published: true,
+    is_published: true, is_featured: false,
   });
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -100,6 +100,7 @@ export default function AdminRetreatDetailPage() {
           social_links_instagram: links?.instagram ?? "",
           social_links_facebook: links?.facebook ?? "",
           is_published: r.is_published,
+          is_featured: r.is_featured ?? false,
         });
       })
       .catch(() => toast.error("Failed to load retreat"))
@@ -141,6 +142,7 @@ export default function AdminRetreatDetailPage() {
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         social_links: links,
         is_published: form.is_published,
+        is_featured: form.is_featured,
       });
 
       let finalRetreat = { ...updated };
@@ -530,6 +532,16 @@ export default function AdminRetreatDetailPage() {
                     className={`text-xs px-3 py-1.5 rounded font-medium ${form.is_published ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
                   >
                     {form.is_published ? "Published" : "Draft"}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <Label>Featured</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, is_featured: !f.is_featured }))}
+                    className={`text-xs px-3 py-1.5 rounded font-medium ${form.is_featured ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}`}
+                  >
+                    {form.is_featured ? "Featured" : "Not Featured"}
                   </button>
                 </div>
                 <div className="space-y-2">
