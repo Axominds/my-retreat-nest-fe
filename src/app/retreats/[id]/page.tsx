@@ -29,19 +29,13 @@ import {
   ExternalLink,
   ArrowLeft,
   ChevronRight,
+  TreePine,
 } from "lucide-react";
 
 interface RetreatDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80",
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&q=80",
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80",
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80",
-];
 
 function formatBudget(min: number | null, max: number | null): string {
   if (min != null && max != null)
@@ -82,21 +76,44 @@ export default async function RetreatDetailPage({
     (c) => c.category_id === retreat.category_id
   )?.name;
   const price = formatBudget(retreat.budget_min, retreat.budget_max);
-  const heroImage = retreat.banner_image
-    ? `${API_BASE_URL}${retreat.banner_image}`
-    : HERO_IMAGES[retreatId % HERO_IMAGES.length];
+  const hasBanner = Boolean(retreat.banner_image);
+  const heroImage = hasBanner ? `${API_BASE_URL}${retreat.banner_image}` : null;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Banner */}
       <section className="relative overflow-hidden h-[45vh] md:h-[55vh]">
-        <img
-          src={heroImage}
-          alt={retreat.name}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent" />
+        {heroImage ? (
+          <>
+            <img
+              src={heroImage}
+              alt={retreat.name}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent" />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-emerald-700" />
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6) 1px, transparent 1px), radial-gradient(circle at 80% 60%, rgba(255,255,255,0.4) 1px, transparent 1px)",
+                backgroundSize: "48px 48px",
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 opacity-90">
+                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/15 backdrop-blur-sm ring-8 ring-white/10">
+                  <TreePine className="h-12 w-12 text-white/90" />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Back button */}
         <div className="absolute top-4 left-4 md:top-6 md:left-6 z-10">
@@ -346,17 +363,6 @@ export default async function RetreatDetailPage({
                   <RetreatDetailWishlistButton retreatId={retreatId} />
 
                   <Separator />
-
-                  {retreat.address && (
-                    <div className="flex items-start gap-3 text-sm">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <span className="mt-1.5 text-muted-foreground">
-                        {retreat.address}
-                      </span>
-                    </div>
-                  )}
 
                   <RetreatMapWrapper
                     latitude={retreat.latitude}

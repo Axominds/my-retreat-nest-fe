@@ -117,11 +117,17 @@ export default function AdminRetreatDetailPage() {
 
   async function handleSave() {
     const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Name is required";
+    if (!form.slug.trim()) errs.slug = "Slug is required";
+    if (!form.category_id) errs.category = "Category is required";
     if (!form.email.trim()) errs.email = "Email is required";
     if (!form.phone.trim()) errs.phone = "Phone is required";
     if (!form.latitude || !form.longitude) errs.location = "Location is required";
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      toast.error("Please fill in the required fields.");
+      return;
+    }
     setSaving(true);
     try {
       const links: Record<string, string> = {};
@@ -507,22 +513,25 @@ export default function AdminRetreatDetailPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
-                  <Select value={String(form.category_id)} onValueChange={(v) => setForm((f) => ({ ...f, category_id: Number(v) }))}>
-                    <SelectTrigger id="category"><SelectValue placeholder="Select category">{form.category_id ? categoryName(form.category_id) : "Select category"}</SelectValue></SelectTrigger>
+                  <Select value={String(form.category_id)} onValueChange={(v) => { setErrors((e) => ({ ...e, category: "" })); setForm((f) => ({ ...f, category_id: Number(v) })); }}>
+                    <SelectTrigger id="category" aria-invalid={!!errors.category}><SelectValue placeholder="Select category">{form.category_id ? categoryName(form.category_id) : "Select category"}</SelectValue></SelectTrigger>
                     <SelectContent side="bottom" align="start">
                       {categories.map((c) => (
                         <SelectItem key={c.category_id} value={String(c.category_id)}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.category && <p className="text-xs text-destructive">{errors.category}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
-                  <Input id="name" value={form.name} onChange={(e) => handleNameChange(e.target.value)} />
+                  <Input id="name" aria-invalid={!!errors.name} value={form.name} onChange={(e) => { setErrors((er) => ({ ...er, name: "" })); handleNameChange(e.target.value); }} />
+                  {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
-                  <Input id="slug" value={form.slug} onChange={(e) => { setSlugManuallyEdited(true); setForm((f) => ({ ...f, slug: e.target.value })); }} />
+                  <Input id="slug" aria-invalid={!!errors.slug} value={form.slug} onChange={(e) => { setSlugManuallyEdited(true); setErrors((er) => ({ ...er, slug: "" })); setForm((f) => ({ ...f, slug: e.target.value })); }} />
+                  {errors.slug && <p className="text-xs text-destructive">{errors.slug}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -12,8 +12,10 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, MapPin, Pencil, Search } from "lucide-react";
-import { forwardGeocode, reverseGeocode } from "@/lib/geocoding";
+import { Loader2, MapPin } from "lucide-react";
+import { reverseGeocode } from "@/lib/geocoding";
+import { MapSearchBox } from "@/components/ui/map-search-box";
+import { MapControls } from "@/components/ui/map-controls";
 
 const DefaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -29,8 +31,6 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const DEFAULT_CENTER: [number, number] = [27.7172, 85.324];
 const DEFAULT_ZOOM = 4;
-
-type InteractionMode = "edit" | "geocode";
 
 function MapClickHandler({
   onLocationSelect,
@@ -74,57 +74,16 @@ export function LocationPicker({
   required,
   onChange,
 }: LocationPickerProps) {
-  const [activeMode, setActiveMode] = useState<InteractionMode | null>(null);
   const [geocoding, setGeocoding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
 
   const hasCoords = latitude !== "" && longitude !== "";
   const position: [number, number] | null = hasCoords
     ? [Number(latitude), Number(longitude)]
     : null;
 
-  function handleModeChange(mode: InteractionMode) {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    setError(null);
-    setActiveMode((prev) => (prev === mode ? null : mode));
-  }
-
-  const handleAddressSearch = useCallback(
-    (value: string) => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      if (!value.trim()) return;
-      setError(null);
-      debounceTimer.current = setTimeout(async () => {
-        setGeocoding(true);
-        try {
-          const results = await forwardGeocode(value);
-          if (results.length > 0) {
-            const { lat, lon, display_name } = results[0];
-            onChange({
-              address: display_name,
-              latitude: String(lat),
-              longitude: String(lon),
-            });
-          } else {
-            setError("No location found");
-          }
-        } catch {
-          setError("Geocoding failed");
-        } finally {
-          setGeocoding(false);
-        }
-      }, 600);
-    },
-    [onChange],
-  );
-
   const handleLocationSelect = useCallback(
     async (lat: number, lng: number) => {
       setGeocoding(true);
-      setError(null);
       try {
         const result = await reverseGeocode(lat, lng);
         onChange({
@@ -150,14 +109,6 @@ export function LocationPicker({
     [handleLocationSelect],
   );
 
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, []);
-
-  const isReadonly = activeMode === null;
-
   return (
     <div className="space-y-3">
       <div className="space-y-2">
@@ -171,58 +122,28 @@ export function LocationPicker({
             onChange={(e) => {
               const val = e.target.value;
               onChange({ address: val, latitude, longitude });
-              if (activeMode === "geocode") handleAddressSearch(val);
             }}
-            readOnly={isReadonly}
-            placeholder={
-              isReadonly
-                ? "Click the map or select a mode above..."
-                : activeMode === "edit"
-                  ? "Edit address text (coordinates unchanged)..."
-                  : "Type to search, then refine on the map..."
-            }
+            placeholder="Search the address name"
           />
           {geocoding && (
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
+        {!hasCoords && (
+          <p className="text-xs text-muted-foreground">
+            Select a location on the map or search to set the coordinates.
+          </p>
+        )}
       </div>
 
-      <div className="flex gap-1">
-        <button
-          type="button"
-          onClick={() => handleModeChange("edit")}
-          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-            activeMode === "edit"
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-        >
-          <Pencil className="h-3 w-3" />
-          Edit
-        </button>
-        <button
-          type="button"
-          onClick={() => handleModeChange("geocode")}
-          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-            activeMode === "geocode"
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-        >
-          <Search className="h-3 w-3" />
-          Search
-        </button>
-      </div>
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
-
-      <div className="h-64 rounded-lg overflow-hidden border z-10">
+      <div className="h-64 rounded-lg overflow-hidden border relative">
         <MapContainer
           center={position ?? DEFAULT_CENTER}
           zoom={position ? 13 : DEFAULT_ZOOM}
-          className="h-full w-full"
+          className="h-full w-full relative"
           scrollWheelZoom={true}
+          zoomControl={false}
+          attributionControl={false}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -232,17 +153,30 @@ export function LocationPicker({
           {position && (
             <Marker
               position={position}
-              draggable={activeMode === "geocode"}
-              eventHandlers={
-                activeMode === "geocode"
-                  ? { dragend: handleMarkerDrag }
-                  : undefined
-              }
+              draggable
+              eventHandlers={{ dragend: handleMarkerDrag }}
             />
           )}
-          {activeMode === "geocode" && (
-            <MapClickHandler onLocationSelect={handleLocationSelect} />
-          )}
+          <MapClickHandler onLocationSelect={handleLocationSelect} />
+          <MapSearchBox
+            latitude={latitude}
+            longitude={longitude}
+            address={address}
+            onLocationSelect={(data) => onChange(data)}
+            sidePanelItems={[
+              ...(hasCoords
+                ? [
+                    {
+                      label: "Open in Google Maps",
+                      href: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
+                      external: true,
+                      icon: <MapPin className="h-4 w-4" />,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <MapControls />
         </MapContainer>
       </div>
 
