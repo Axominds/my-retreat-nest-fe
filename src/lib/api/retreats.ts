@@ -157,8 +157,9 @@ export async function getRetreatUsers(retreatId: number): Promise<RetreatStaffMe
 export async function createRetreatUser(
   retreatId: number,
   payload: { name: string; email: string; role: string }
-): Promise<void> {
-  await post(`/retreats/${retreatId}/users/`, payload, { auth: true });
+): Promise<string> {
+  const response = await post<null>(`/retreats/${retreatId}/users/`, payload, { auth: true });
+  return response.message ?? "";
 }
 
 export async function deleteRetreatUser(retreatId: number, retreatUserId: number): Promise<void> {

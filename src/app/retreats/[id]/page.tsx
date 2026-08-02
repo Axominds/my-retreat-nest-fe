@@ -378,16 +378,6 @@ export default async function RetreatDetailPage({
                     address={retreat.address}
                   />
 
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${retreat.latitude},${retreat.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-primary hover:underline font-medium"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    Get Directions
-                  </a>
-
                   <Separator />
 
                   {retreat.email && (

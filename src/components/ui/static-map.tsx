@@ -25,6 +25,7 @@ interface StaticMapProps {
   longitude: number;
   address?: string | null;
   className?: string;
+  showSearch?: boolean;
   onLocationSelect?: (data: {
     address: string;
     latitude: number;
@@ -37,6 +38,7 @@ export function StaticMap({
   longitude,
   address,
   className,
+  showSearch = false,
   onLocationSelect,
 }: StaticMapProps) {
   const [position, setPosition] = useState<[number, number]>([
@@ -78,26 +80,49 @@ export function StaticMap({
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Marker position={position} />
-        <MapSearchBox
-          latitude={String(position[0])}
-          longitude={String(position[1])}
-          address={selectedAddress}
-          onLocationSelect={handleLocationSelect}
-          sidePanelItems={[
-            {
-              label: "Get Directions",
-              href: `https://www.google.com/maps/dir/?api=1&destination=${position[0]},${position[1]}`,
-              external: true,
-              icon: <Navigation className="h-4 w-4" />,
-            },
-            {
-              label: "Open in Google Maps",
-              href: `https://www.google.com/maps/search/?api=1&query=${position[0]},${position[1]}`,
-              external: true,
-              icon: <ExternalLink className="h-4 w-4" />,
-            },
-          ]}
-        />
+        {showSearch ? (
+          <MapSearchBox
+            latitude={String(position[0])}
+            longitude={String(position[1])}
+            address={selectedAddress}
+            onLocationSelect={handleLocationSelect}
+            sidePanelItems={[
+              {
+                label: "Get Directions",
+                href: `https://www.google.com/maps/dir/?api=1&destination=${position[0]},${position[1]}`,
+                external: true,
+                icon: <Navigation className="h-4 w-4" />,
+              },
+              {
+                label: "Open in Google Maps",
+                href: `https://www.google.com/maps/search/?api=1&query=${position[0]},${position[1]}`,
+                external: true,
+                icon: <ExternalLink className="h-4 w-4" />,
+              },
+            ]}
+          />
+        ) : (
+          <div className="absolute bottom-3 left-3 z-[1100] flex flex-col gap-1.5">
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${position[0]},${position[1]}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-md ring-1 ring-black/5 transition-colors hover:bg-white"
+            >
+              <Navigation className="h-3.5 w-3.5" />
+              Get Directions
+            </a>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${position[0]},${position[1]}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-md ring-1 ring-black/5 transition-colors hover:bg-white"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Open in Google Maps
+            </a>
+          </div>
+        )}
         <MapControls />
       </MapContainer>
     </div>

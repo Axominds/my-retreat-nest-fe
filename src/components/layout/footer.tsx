@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,8 +89,11 @@ const socialLinks: {
 ];
 
 export function Footer() {
+  const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+
+  if (pathname.startsWith("/admin")) return null;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +122,7 @@ export function Footer() {
       />
 
       <div className="container mx-auto px-4 pt-14 md:pt-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 lg:gap-8 relative">
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
@@ -184,15 +188,15 @@ export function Footer() {
               <h4 className="text-sm font-semibold tracking-wide text-foreground">
                 {group.title}
               </h4>
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-1 space-y-3">
                 {group.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+                      className="group relative inline-block text-sm text-muted-foreground transition-colors hover:text-primary"
                     >
-                      <ArrowRight className="h-3.5 w-3.5 -translate-x-1 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
-                      <span className="transition-transform duration-300 group-hover:translate-x-1">
+                      <ArrowRight className="absolute right-full top-1/2 mr-0.5 h-3.5 w-3.5 -translate-y-1/2 -translate-x-1 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
+                      <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">
                         {link.label}
                       </span>
                     </Link>

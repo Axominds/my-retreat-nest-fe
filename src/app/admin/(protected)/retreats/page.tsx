@@ -253,7 +253,7 @@ export default function AdminRetreatsPage() {
             <Select value={sortKey} onValueChange={(v) => { setSortKey(v as SortKey); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-32 bg-background">
                 <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
-                <SelectValue />
+                <SelectValue>{sortKey === "newest" ? "Newest" : "Oldest"}</SelectValue>
               </SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="newest">Newest</SelectItem>
