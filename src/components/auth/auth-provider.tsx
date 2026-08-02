@@ -11,6 +11,7 @@ import {
 } from "react";
 import { setAccessToken, clearTokens } from "@/lib/api/client";
 import { login as apiLogin, logout as apiLogout, refreshToken as apiRefresh } from "@/lib/api/auth";
+import { usePathname } from "next/navigation";
 import type { User } from "@/types/user";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -67,6 +68,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname.startsWith("/admin");
   const [state, setState] = useState<AuthState>({
     normalUser: null,
     adminUser: null,
@@ -77,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const setSession = useCallback((loginType: string, token: string | null, user: User | null) => {
     setAccessToken(loginType, token);
@@ -116,7 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const current = stateRef.current;
-    const loginType = current.activeLoginType ?? undefined;
+    const loginType = isAdminRoute
+      ? (current.adminUser ? "admin" : undefined)
+      : (current.normalUser ? "normal" : undefined);
     try {
       await apiLogout(loginType);
     } catch {
@@ -144,15 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updated.normalUser = null;
         updated.normalAccessToken = null;
       }
-      if (prev.activeLoginType === loginType) {
-        const other = loginType === "admin" ? prev.normalUser : prev.adminUser;
-        updated.activeLoginType = other
-          ? (loginType === "admin" ? "normal" : "admin")
-          : null;
-      }
       return updated;
     });
-  }, []);
+  }, [isAdminRoute]);
 
   const refreshSession = useCallback(async (loginType?: string): Promise<boolean> => {
     const types = loginType ? [loginType] : ["admin", "normal"];
@@ -207,12 +208,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback((user: User) => {
     setState((prev) => {
-      if (prev.activeLoginType === "admin") {
+      if (isAdminRoute) {
         return { ...prev, adminUser: user };
       }
       return { ...prev, normalUser: user };
     });
-  }, []);
+  }, [isAdminRoute]);
 
   const initDone = useRef(false);
   useEffect(() => {
@@ -221,8 +222,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshSession();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeUser = state.activeLoginType === "admin" ? state.adminUser : state.normalUser;
-  const activeAccessToken = state.activeLoginType === "admin" ? state.adminAccessToken : state.normalAccessToken;
+  // The active session follows the current portal: an admin session is not
+  // valid on normal routes (and vice versa). If the current portal has no
+  // session, the user is treated as logged out.
+  const activeLoginType = isAdminRoute
+    ? (state.adminUser ? "admin" : null)
+    : (state.normalUser ? "normal" : null);
+  const activeUser = activeLoginType === "admin" ? state.adminUser : state.normalUser;
+  const activeAccessToken = activeLoginType === "admin" ? state.adminAccessToken : state.normalAccessToken;
 
   return (
     <AuthContext.Provider
@@ -233,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: activeUser !== null,
         normalUser: state.normalUser,
         adminUser: state.adminUser,
-        activeLoginType: state.activeLoginType,
+        activeLoginType,
         login,
         logout,
         refreshSession,

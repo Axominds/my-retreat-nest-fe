@@ -107,7 +107,7 @@ export function Header() {
                     Wishlist
                   </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => router.push("/account")}>
+                  <DropdownMenuItem onClick={() => router.push(user?.login_type === "admin" ? "/admin/account" : "/account")}>
                     <User className="h-4 w-4 mr-2" />
                     Account
                   </DropdownMenuItem>
@@ -187,7 +187,7 @@ export function Header() {
                     </Link>
                     )}
                     <Link
-                      href="/account"
+                      href={user?.login_type === "admin" ? "/admin/account" : "/account"}
                       onClick={() => setOpen(false)}
                       className="text-lg font-medium"
                     >

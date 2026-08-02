@@ -8,25 +8,30 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { updateUser as updateUserApi } from "@/lib/api/users";
+import type { User } from "@/types/user";
 import { toast } from "sonner";
-import { User, Mail, Phone, Save, RotateCcw, Check, Pencil } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Save, RotateCcw, Check } from "lucide-react";
 
-export function ProfileForm() {
-  const { user, updateUser } = useAuth();
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [phone, setPhone] = useState(user?.phone ?? "");
+interface ProfileFormProps {
+  user: User;
+  onSaved?: (user: User) => void;
+}
+
+export function ProfileForm({ user, onSaved }: ProfileFormProps) {
+  const { updateUser } = useAuth();
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  const [phone, setPhone] = useState(user.phone ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const hasChanges =
-    name !== (user?.name ?? "") ||
-    email !== (user?.email ?? "") ||
-    phone !== (user?.phone ?? "");
+    name !== user.name ||
+    email !== user.email ||
+    phone !== (user.phone ?? "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     setIsSaving(true);
     try {
       const updated = await updateUserApi(user.user_id, {
@@ -34,7 +39,8 @@ export function ProfileForm() {
         email,
         phone: phone || null,
       });
-      updateUser(updated);
+      updateUser({ ...updated, login_type: user.login_type });
+      onSaved?.(updated);
       setSaved(true);
       toast.success("Profile updated successfully");
       setTimeout(() => setSaved(false), 2000);
@@ -46,9 +52,9 @@ export function ProfileForm() {
   };
 
   const handleReset = () => {
-    setName(user?.name ?? "");
-    setEmail(user?.email ?? "");
-    setPhone(user?.phone ?? "");
+    setName(user.name);
+    setEmail(user.email);
+    setPhone(user.phone ?? "");
   };
 
   return (
@@ -60,7 +66,7 @@ export function ProfileForm() {
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
                 Full Name <span className="text-destructive">*</span>
               </Label>
               <Input
