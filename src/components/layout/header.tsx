@@ -12,8 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Heart, Menu, LogOut, User, TreePine, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { Heart, Menu, LogOut, User, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const navLinks: { href: string; label: string }[] = [];
 
@@ -22,20 +22,44 @@ export function Header() {
   const router = useRouter();
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   if (pathname === "/admin/login") return null;
 
   const isAdmin = pathname.startsWith("/admin");
+  const isRetreatDetail = /^\/retreats\/\d+/.test(pathname);
+  const overlay = isRetreatDetail && !scrolled;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className={`sticky top-0 z-50 w-full border-b transition-colors duration-300 ${
+        overlay
+          ? "border-transparent bg-transparent"
+          : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      }`}
+    >
       <div className="container mx-auto flex h-16 items-center justify-between pl-4">
         <div className="flex items-center gap-2 -ml-2">
           <Link href={isAdmin ? "/admin" : "/"} className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-              <TreePine className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">My Retreat Nest</span>
+            <img
+              src="/logo.png"
+              alt="My Retreat Nest"
+              className="h-9 w-9 rounded-xl object-contain"
+            />
+            <span
+              className={`text-lg font-bold tracking-tight transition-colors ${
+                overlay ? "text-white" : ""
+              }`}
+            >
+              My Retreat Nest
+            </span>
           </Link>
         </div>
 
@@ -56,11 +80,25 @@ export function Header() {
             {isLoading ? null : isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-3" />}>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  <div
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                      overlay ? "bg-white/15 text-white" : "bg-primary/10 text-primary"
+                    }`}
+                  >
                     {user?.name?.charAt(0)?.toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium max-w-[120px] truncate">{user?.name}</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <span
+                    className={`text-sm font-medium max-w-[120px] truncate transition-colors ${
+                      overlay ? "text-white" : ""
+                    }`}
+                  >
+                    {user?.name}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-colors ${
+                      overlay ? "text-white/70" : "text-muted-foreground"
+                    }`}
+                  />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {!isAdmin && (
@@ -83,7 +121,16 @@ export function Header() {
             ) : (
               <div className="flex items-center space-x-3">
                 <Link href="/login">
-                  <Button variant="ghost">Login</Button>
+                  <Button
+                    variant="ghost"
+                    className={
+                      overlay
+                        ? "text-white hover:bg-white/15 hover:text-white"
+                        : undefined
+                    }
+                  >
+                    Login
+                  </Button>
                 </Link>
                 <Link href="/signup">
                   <Button>Sign Up</Button>
@@ -95,7 +142,15 @@ export function Header() {
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
               className="md:hidden"
-              render={<Button variant="ghost" size="icon"><Menu className="h-5 w-5" /></Button>}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={overlay ? "text-white hover:bg-white/15 hover:text-white" : undefined}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              }
             />
             <SheetContent side="right">
               <div className="flex flex-col space-y-4 mt-8">

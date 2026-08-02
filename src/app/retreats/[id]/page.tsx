@@ -6,7 +6,6 @@ import { API_BASE_URL } from "@/lib/constants";
 import { getGalleryCategories } from "@/lib/api/gallery-categories";
 import { RetreatGallery } from "@/components/retreats/retreat-gallery";
 import { ReviewList } from "@/components/reviews/review-list";
-import { WishlistFloatingButton } from "@/components/wishlist/wishlist-floating-button";
 import { RetreatDetailWishlistButton } from "@/components/wishlist/retreat-detail-wishlist-button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,6 @@ import {
   MapPin,
   Mail,
   Phone,
-  CalendarCheck,
   Share2,
   Star,
   Coffee,
@@ -43,6 +41,12 @@ function formatBudget(min: number | null, max: number | null): string {
   if (min != null) return `From $${min.toLocaleString()}`;
   if (max != null) return `Up to $${max.toLocaleString()}`;
   return "";
+}
+
+function whatsappLink(phone: string | null | undefined, retreatName: string): string {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  const message = encodeURIComponent(`Hi! I'm interested in booking ${retreatName}.`);
+  return `https://wa.me/${digits}?text=${message}`;
 }
 
 export default async function RetreatDetailPage({
@@ -82,7 +86,7 @@ export default async function RetreatDetailPage({
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Banner */}
-      <section className="relative overflow-hidden h-[45vh] md:h-[55vh]">
+      <section className="relative overflow-hidden -mt-16 h-[calc(45vh+4rem)] md:h-[calc(55vh+4rem)]">
         {heroImage ? (
           <>
             <img
@@ -92,6 +96,7 @@ export default async function RetreatDetailPage({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent" />
           </>
         ) : (
           <>
@@ -105,6 +110,7 @@ export default async function RetreatDetailPage({
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent" />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex flex-col items-center gap-4 opacity-90">
                 <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/15 backdrop-blur-sm ring-8 ring-white/10">
@@ -116,7 +122,7 @@ export default async function RetreatDetailPage({
         )}
 
         {/* Back button */}
-        <div className="absolute top-4 left-4 md:top-6 md:left-6 z-10">
+        <div className="absolute top-20 left-4 md:top-24 md:left-6 z-10">
           <Link
             href="/retreats"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white text-sm font-medium hover:bg-white/25 transition-colors"
@@ -353,10 +359,12 @@ export default async function RetreatDetailPage({
 
                 <div className="p-5 space-y-4">
                   <a
-                    href={`mailto:${retreat.email ?? ""}`}
+                    href={whatsappLink(retreat.phone, retreat.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 h-12 w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30"
                   >
-                    <CalendarCheck className="h-4 w-4" />
+                    <MessageSquare className="h-4 w-4" />
                     Book Now
                   </a>
 
@@ -433,8 +441,6 @@ export default async function RetreatDetailPage({
           </aside>
         </div>
       </div>
-
-      <WishlistFloatingButton retreatId={retreatId} />
     </div>
   );
 }

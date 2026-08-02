@@ -4,15 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { getRetreats } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
 import { getWishlist } from "@/lib/api/wishlist";
-import { RetreatGrid } from "@/components/retreats/retreat-grid";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { PagedRetreatCarousel } from "@/components/retreats/paged-retreat-carousel";
 import { useAuth } from "@/hooks/use-auth";
-import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
 import {
   Search,
@@ -39,11 +37,7 @@ const CATEGORY_IMAGES = [
 export default function HomePage() {
   const { isAuthenticated } = useAuth();
 
-  const [featuredRetreats, setFeaturedRetreats] = useState<Retreat[]>([]);
-  const [popularRetreats, setPopularRetreats] = useState<Retreat[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
-  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,38 +46,6 @@ export default function HomePage() {
     getCategories({ page_size: 100 })
       .then((c) => setCategories(c.items))
       .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getRetreats({ page: 1, page_size: 6, is_published: true, is_featured: true })
-      .then((result) => {
-        if (cancelled) return;
-        setFeaturedRetreats(result.items);
-        setIsLoadingFeatured(false);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError("Failed to load data");
-          setIsLoadingFeatured(false);
-        }
-      });
-
-    getRetreats({ page: 1, page_size: 6, is_published: true, sort_by: "rating" })
-      .then((result) => {
-        if (cancelled) return;
-        setPopularRetreats(result.items);
-        setIsLoadingPopular(false);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError("Failed to load data");
-          setIsLoadingPopular(false);
-        }
-      });
-
-    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -101,6 +63,12 @@ export default function HomePage() {
 
     return () => { cancelled = true; };
   }, [isAuthenticated]);
+
+  const fetchFeatured = (page: number) =>
+    getRetreats({ page, page_size: 6, is_published: true, is_featured: true });
+
+  const fetchPopular = (page: number) =>
+    getRetreats({ page, page_size: 6, is_published: true, sort_by: "rating" });
 
   return (
     <div>
@@ -166,122 +134,83 @@ export default function HomePage() {
       ) : (
         <>
           {/* Featured Retreats */}
-          {(isLoadingFeatured || featuredRetreats.length > 0) && (
           <section className="container mx-auto px-4 py-12 md:py-16">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
-                <Star className="h-3.5 w-3.5 fill-primary/30" />
-                Featured
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold">
-                <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            <PagedRetreatCarousel
+              badge={
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground text-xs font-semibold shadow-md shadow-primary/25 mb-4">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+                    <Star className="h-3 w-3 fill-white" />
+                  </span>
+                  Featured
+                </div>
+              }
+              title={
+                <span className="bg-gradient-to-r from-primary via-emerald-600 to-emerald-500 bg-clip-text text-transparent">
                   Featured Retreats
                 </span>
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                Handpicked stays our team recommends
-              </p>
-              <Link
-                href="/retreats"
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline mt-3"
-              >
-                View all <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {isLoadingFeatured ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="h-52 w-full rounded-xl" />
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : featuredRetreats.length > 0 ? (
-              <>
-                <RetreatGrid
-                  retreats={featuredRetreats}
-                  categories={categories}
-                  renderWishlistButton={(id) => (
-                    <WishlistButton
-                      retreatId={id}
-                      isWishlisted={wishlistIds.has(id)}
-                      variant="ghost"
-                      className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
-                      onToggle={(newState) => {
-                        setWishlistIds((prev) => {
-                          const next = new Set(prev);
-                          if (newState) next.add(id);
-                          else next.delete(id);
-                          return next;
-                        });
-                      }}
-                    />
-                  )}
+              }
+              subtitle="Handpicked stays our team recommends"
+              viewAllHref="/retreats"
+              viewAllLabel="View all featured"
+              fetchPage={fetchFeatured}
+              categories={categories}
+              renderWishlistButton={(id) => (
+                <WishlistButton
+                  retreatId={id}
+                  isWishlisted={wishlistIds.has(id)}
+                  variant="ghost"
+                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                  onToggle={(newState) => {
+                    setWishlistIds((prev) => {
+                      const next = new Set(prev);
+                      if (newState) next.add(id);
+                      else next.delete(id);
+                      return next;
+                    });
+                  }}
                 />
-                <div className="text-center mt-10 sm:hidden">
-                  <Link href="/retreats">
-                    <Button variant="outline" size="lg">
-                      View All Retreats <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              </>
-            ) : null}
+              )}
+            />
           </section>
-          )}
 
           {/* Popular Retreats */}
           <section className="container mx-auto px-4 py-12 md:py-16">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 text-xs font-medium mb-3">
-                <Flame className="h-3.5 w-3.5" />
-                Trending
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold">
-                <span className="bg-gradient-to-r from-orange-600 to-rose-600 bg-clip-text text-transparent">
+            <PagedRetreatCarousel
+              badge={
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-semibold shadow-md shadow-orange-500/25 mb-4">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+                    <Flame className="h-3 w-3 fill-white" />
+                  </span>
+                  Trending
+                </div>
+              }
+              title={
+                <span className="bg-gradient-to-r from-orange-600 via-rose-500 to-rose-600 bg-clip-text text-transparent">
                   Popular Retreats
                 </span>
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                Top-rated stays our guests love most
-              </p>
-            </div>
-
-            {isLoadingPopular ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="h-52 w-full rounded-xl" />
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : popularRetreats.length > 0 ? (
-              <RetreatGrid
-                retreats={popularRetreats}
-                categories={categories}
-                renderWishlistButton={(id) => (
-                  <WishlistButton
-                    retreatId={id}
-                    isWishlisted={wishlistIds.has(id)}
-                    variant="ghost"
-                    className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
-                    onToggle={(newState) => {
-                      setWishlistIds((prev) => {
-                        const next = new Set(prev);
-                        if (newState) next.add(id);
-                        else next.delete(id);
-                        return next;
-                      });
-                    }}
-                  />
-                )}
-              />
-            ) : null}
+              }
+              subtitle="Top-rated stays our guests love most"
+              viewAllHref="/retreats"
+              viewAllLabel="View all popular"
+              fetchPage={fetchPopular}
+              categories={categories}
+              renderWishlistButton={(id) => (
+                <WishlistButton
+                  retreatId={id}
+                  isWishlisted={wishlistIds.has(id)}
+                  variant="ghost"
+                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                  onToggle={(newState) => {
+                    setWishlistIds((prev) => {
+                      const next = new Set(prev);
+                      if (newState) next.add(id);
+                      else next.delete(id);
+                      return next;
+                    });
+                  }}
+                />
+              )}
+            />
           </section>
 
           {/* Why Choose Us */}
