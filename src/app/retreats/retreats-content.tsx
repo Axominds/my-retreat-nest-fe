@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getRetreats } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
@@ -20,7 +20,6 @@ import type { Category } from "@/types/category";
 import type { PaginationMeta } from "@/types/api";
 
 export default function RetreatsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
 
@@ -31,7 +30,7 @@ export default function RetreatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
   const [filters, setFilters] = useState<FilterValues>({
-    search: "",
+    search: searchParams.get("search") || "",
     categoryId: searchParams.get("category") || "all",
     budgetMin: "",
     budgetMax: "",
@@ -66,51 +65,54 @@ export default function RetreatsPage() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    setIsTransitioning(true);
+    const apiParams = {
+      page,
+      page_size: 12,
+      is_published: true,
+      search: filters.search || undefined,
+      category_id: filters.categoryId !== "all" ? Number(filters.categoryId) : undefined,
+      budget_min: filters.budgetMin ? Number(filters.budgetMin) : undefined,
+      budget_max: filters.budgetMax ? Number(filters.budgetMax) : undefined,
+      rating: filters.rating ? Number(filters.rating) : undefined,
+    };
 
-    getRetreats({ page, page_size: 12, is_published: true })
-      .then((result) => {
-        setRetreats(result.items);
-        setMeta(result.meta);
-      })
-      .catch(() => {
-        setError("Failed to load retreats");
-      })
-      .finally(() => {
-        setIsLoading(false);
-        setTimeout(() => setIsTransitioning(false), 300);
-      });
-  }, [page]);
+    let cancelled = false;
+    let transitionTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const debounceTimer = setTimeout(() => {
+      if (cancelled) return;
+      setIsLoading(true);
+      setError(null);
+      setIsTransitioning(true);
+
+      getRetreats(apiParams)
+        .then((result) => {
+          if (cancelled) return;
+          setRetreats(result.items);
+          setMeta(result.meta);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setError("Failed to load retreats");
+        })
+        .finally(() => {
+          if (cancelled) return;
+          setIsLoading(false);
+          transitionTimer = setTimeout(() => setIsTransitioning(false), 300);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(debounceTimer);
+      if (transitionTimer) clearTimeout(transitionTimer);
+    };
+  }, [page, filters]);
 
   const handleFilterChange = (newFilters: FilterValues) => {
     setFilters(newFilters);
     setPage(1);
   };
-
-  const filteredRetreats = useMemo(() =>
-    retreats.filter((r) => {
-      if (filters.categoryId !== "all" && r.category_id !== Number(filters.categoryId)) return false;
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        if (!r.name.toLowerCase().includes(q) && !r.description?.toLowerCase().includes(q) && !r.address?.toLowerCase().includes(q)) return false;
-      }
-      if (filters.budgetMin && r.budget_min != null && r.budget_min < Number(filters.budgetMin)) return false;
-      if (filters.budgetMax && r.budget_max != null && r.budget_max > Number(filters.budgetMax)) return false;
-      if (filters.rating && r.average_rating != null && r.average_rating < Number(filters.rating)) return false;
-      if (filters.breakfastIncluded && r.breakfast_included != null) {
-        const wantsBreakfast = filters.breakfastIncluded === "yes";
-        if (r.breakfast_included !== wantsBreakfast) return false;
-      }
-      if (filters.paymentType && r.payment_type != null && r.payment_type !== filters.paymentType) return false;
-      if (filters.freeCancellation && r.free_cancellation != null) {
-        const wantsFree = filters.freeCancellation === "yes";
-        if (r.free_cancellation !== wantsFree) return false;
-      }
-      return true;
-    }),
-  [retreats, filters]);
 
   const selectedCategoryName = filters.categoryId !== "all"
     ? categories.find((c) => c.category_id === Number(filters.categoryId))?.name
@@ -157,7 +159,7 @@ export default function RetreatsPage() {
 
             <div className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: "120ms" }}>
               <div className="bg-white/25 backdrop-blur-xl rounded-xl border border-white/30 shadow-xl shadow-black/5">
-                <RetreatFilters categories={categories} onFilterChange={handleFilterChange} variant="hero" />
+                <RetreatFilters categories={categories} onFilterChange={handleFilterChange} variant="hero" initialValues={filters} />
               </div>
             </div>
           </div>
@@ -194,7 +196,7 @@ export default function RetreatsPage() {
               ))}
             </div>
           </div>
-        ) : filteredRetreats.length === 0 ? (
+        ) : retreats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in-up">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-5">
               <SearchX className="h-8 w-8 text-muted-foreground" />
@@ -209,7 +211,8 @@ export default function RetreatsPage() {
             {/* Results bar */}
             <div className="flex items-center justify-between animate-fade-in-up" style={{ animationDelay: "120ms" }}>
               <p className="text-sm text-muted-foreground">
-                Showing <span className="font-medium text-foreground">{filteredRetreats.length}</span> of{" "}
+                Page <span className="font-medium text-foreground">{meta?.page ?? page}</span> of{" "}
+                <span className="font-medium text-foreground">{meta?.total_pages ?? 1}</span> ·{" "}
                 <span className="font-medium text-foreground">{meta?.total ?? 0}</span> retreats
               </p>
             </div>
@@ -219,7 +222,7 @@ export default function RetreatsPage() {
             >
               <div className="animate-fade-in-up" style={{ animationDelay: "150ms" }}>
                 <RetreatGrid
-                  retreats={filteredRetreats}
+                  retreats={retreats}
                   categories={categories}
                   renderWishlistButton={(id) => (
                     <WishlistButton

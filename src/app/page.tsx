@@ -96,7 +96,7 @@ export default function HomePage() {
                   placeholder="Search retreats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 placeholder:text-muted-foreground/60"
+                  className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 placeholder:text-muted-foreground/60 text-foreground"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchQuery.trim()) {
                       window.location.href = `/retreats?search=${encodeURIComponent(searchQuery.trim())}`;

@@ -10,6 +10,7 @@ interface RetreatFiltersProps {
   categories: Category[];
   onFilterChange: (filters: FilterValues) => void;
   variant?: "default" | "hero";
+  initialValues?: Partial<FilterValues>;
 }
 
 export interface FilterValues {
@@ -23,7 +24,7 @@ export interface FilterValues {
   freeCancellation: string;
 }
 
-export function RetreatFilters({ categories, onFilterChange, variant = "default" }: RetreatFiltersProps) {
+export function RetreatFilters({ categories, onFilterChange, variant = "default", initialValues }: RetreatFiltersProps) {
   const [filters, setFilters] = useState<FilterValues>({
     search: "",
     categoryId: "all",
@@ -33,6 +34,7 @@ export function RetreatFilters({ categories, onFilterChange, variant = "default"
     breakfastIncluded: "",
     paymentType: "",
     freeCancellation: "",
+    ...initialValues,
   });
   const [showMore, setShowMore] = useState(false);
 

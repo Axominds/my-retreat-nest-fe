@@ -33,6 +33,9 @@ export async function getRetreats(params?: {
   is_featured?: boolean;
   search?: string;
   category_id?: number;
+  budget_min?: number;
+  budget_max?: number;
+  rating?: number;
   sort_by?: string;
   sort_order?: string;
 }): Promise<{ items: Retreat[]; meta: PaginationMeta }> {
@@ -51,6 +54,15 @@ export async function getRetreats(params?: {
   }
   if (params?.category_id !== undefined) {
     queryParams.category_id = params.category_id;
+  }
+  if (params?.budget_min !== undefined) {
+    queryParams.budget_min = params.budget_min;
+  }
+  if (params?.budget_max !== undefined) {
+    queryParams.budget_max = params.budget_max;
+  }
+  if (params?.rating !== undefined) {
+    queryParams.rating = params.rating;
   }
   if (params?.sort_by) {
     queryParams.sort_by = params.sort_by;
