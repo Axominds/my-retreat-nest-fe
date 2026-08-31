@@ -45,11 +45,15 @@ export async function getListingRequest(id: number): Promise<ListingRequest> {
 
 export async function approveListingRequest(
   id: number,
-  slug?: string
+  slug?: string,
+  amenityIds?: number[]
 ): Promise<Retreat> {
+  const body: { slug?: string; amenity_ids?: number[] } = {};
+  if (slug) body.slug = slug;
+  if (amenityIds) body.amenity_ids = amenityIds;
   const response = await post<Retreat>(
     `/listing-requests/${id}/approve/`,
-    slug ? { slug } : {},
+    body,
     { auth: true }
   );
   return response.data;

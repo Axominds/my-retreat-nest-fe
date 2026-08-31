@@ -11,6 +11,7 @@ import {
   rejectListingRequest,
 } from "@/lib/api/listing-requests";
 import { getCategories } from "@/lib/api/categories";
+import { getAmenities } from "@/lib/api/amenities";
 import dynamic from "next/dynamic";
 
 const LocationPicker = dynamic(
@@ -22,6 +23,7 @@ const LocationPicker = dynamic(
 );
 import type { ListingRequest } from "@/types/listing-request";
 import type { Category } from "@/types/category";
+import type { Amenity } from "@/types/amenity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +54,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { AmenityChipSelector } from "@/components/admin/amenity-chip-selector";
 
 export default function AdminListingRequestDetailPage() {
   const { adminUser, isLoading: authLoading } = useAuth();
@@ -66,7 +69,9 @@ export default function AdminListingRequestDetailPage() {
 
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approveSlug, setApproveSlug] = useState("");
+  const [approveAmenityIds, setApproveAmenityIds] = useState<number[]>([]);
   const [approving, setApproving] = useState(false);
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
 
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -136,8 +141,15 @@ export default function AdminListingRequestDetailPage() {
       .replace(/^-+|-+$/g, "");
   }
 
+  useEffect(() => {
+    getAmenities({ page_size: 100 })
+      .then((res) => setAmenities(res.items))
+      .catch(() => {});
+  }, []);
+
   function openApprove() {
     setApproveSlug(slugify(form.retreat_name));
+    setApproveAmenityIds(request?.selected_amenities ?? []);
     setApproveDialogOpen(true);
   }
 
@@ -145,7 +157,7 @@ export default function AdminListingRequestDetailPage() {
     if (!request) return;
     setApproving(true);
     try {
-      await approveListingRequest(requestId, approveSlug || undefined);
+      await approveListingRequest(requestId, approveSlug || undefined, approveAmenityIds);
       setRequest((prev) => prev ? { ...prev, status: "approved" as const } : prev);
       setApproveDialogOpen(false);
       toast.success("Listing approved. Retreat created.");
@@ -533,6 +545,20 @@ export default function AdminListingRequestDetailPage() {
               <p className="text-xs text-muted-foreground">
                 Auto-generated from retreat name. You can edit it.
               </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Amenities</Label>
+              {amenities.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No amenities available yet. Create some in the Amenities section first.
+                </p>
+              ) : (
+                <AmenityChipSelector
+                  amenities={amenities}
+                  selected={approveAmenityIds}
+                  onChange={setApproveAmenityIds}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>

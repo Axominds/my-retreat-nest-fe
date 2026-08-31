@@ -19,6 +19,7 @@ export interface ListingRequest {
   reviewed_at: string | null;
   rejection_reason: string | null;
   retreat_id: number | null;
+  selected_amenities?: number[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,4 +39,5 @@ export interface CreateListingRequestPayload {
   budget_min?: number;
   budget_max?: number;
   social_links: Record<string, string>;
+  selected_amenities?: number[];
 }

@@ -32,6 +32,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PaginationControls } from "@/components/retreats/pagination-controls";
+import { AmenityChipSelector } from "@/components/admin/amenity-chip-selector";
+import { getAmenities } from "@/lib/api/amenities";
+import type { Amenity } from "@/types/amenity";
 import { toast } from "sonner";
 import {
   Check,
@@ -63,7 +66,9 @@ export default function AdminListingRequestsPage() {
 
   const [approveTarget, setApproveTarget] = useState<ListingRequest | null>(null);
   const [approveSlug, setApproveSlug] = useState("");
+  const [approveAmenityIds, setApproveAmenityIds] = useState<number[]>([]);
   const [approving, setApproving] = useState(false);
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
 
   const [rejectTarget, setRejectTarget] = useState<ListingRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -99,8 +104,15 @@ export default function AdminListingRequestsPage() {
       .replace(/^-+|-+$/g, "");
   }
 
+  useEffect(() => {
+    getAmenities({ page_size: 100 })
+      .then((res) => setAmenities(res.items))
+      .catch(() => {});
+  }, []);
+
   function openApprove(r: ListingRequest) {
     setApproveSlug(slugify(r.retreat_name));
+    setApproveAmenityIds(r.selected_amenities ?? []);
     setApproveTarget(r);
   }
 
@@ -110,7 +122,8 @@ export default function AdminListingRequestsPage() {
     try {
       const retreat = await approveListingRequest(
         approveTarget.listing_request_id,
-        approveSlug || undefined
+        approveSlug || undefined,
+        approveAmenityIds
       );
       setRequests((prev) =>
         prev.map((r) =>
@@ -371,6 +384,20 @@ export default function AdminListingRequestsPage() {
               <p className="text-xs text-muted-foreground">
                 Auto-generated from retreat name. You can edit it.
               </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Amenities</Label>
+              {amenities.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No amenities available yet. Create some in the Amenities section first.
+                </p>
+              ) : (
+                <AmenityChipSelector
+                  amenities={amenities}
+                  selected={approveAmenityIds}
+                  onChange={setApproveAmenityIds}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>

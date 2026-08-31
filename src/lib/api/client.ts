@@ -212,6 +212,33 @@ export async function patch<T>(
   return parseResponse<T>(response);
 }
 
+export async function put<T>(
+  path: string,
+  body?: unknown,
+  options?: { auth?: boolean }
+): Promise<ApiEnvelope<T>> {
+  let headers = buildHeaders(options?.auth ?? false);
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildHeaders(true);
+      const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
+        method: "PUT",
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
+  return parseResponse<T>(response);
+}
+
 export async function del<T>(
   path: string,
   options?: { auth?: boolean }

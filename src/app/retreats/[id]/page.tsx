@@ -18,9 +18,7 @@ import {
   Phone,
   Share2,
   Star,
-  Coffee,
-  Ban,
-  CreditCard,
+  Check,
   ImageIcon,
   MessageSquare,
   Info,
@@ -241,40 +239,25 @@ export default async function RetreatDetailPage({
       <div className="container mx-auto px-4 py-8 lg:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
           <div className="lg:col-span-2 space-y-8">
-            {/* Highlights / Amenities */}
-            {(retreat.breakfast_included != null ||
-              retreat.free_cancellation != null ||
-              retreat.payment_type) && (
+            {/* Amenities */}
+            {retreat.amenities && retreat.amenities.length > 0 && (
               <section className="rounded-xl border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <Info className="h-4 w-4 text-primary" />
                   </div>
-                  <h2 className="text-base font-semibold">Highlights</h2>
+                  <h2 className="text-base font-semibold">Amenities</h2>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
-                  {retreat.breakfast_included && (
-                    <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border bg-primary/5 text-primary text-sm font-medium">
-                      <Coffee className="h-4 w-4" />
-                      Breakfast included
+                  {retreat.amenities.map((amenity) => (
+                    <div
+                      key={amenity.amenity_id}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border bg-primary/5 text-primary text-sm font-medium"
+                    >
+                      <Check className="h-4 w-4" />
+                      {amenity.label}
                     </div>
-                  )}
-                  {retreat.free_cancellation && (
-                    <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200 text-sm font-medium">
-                      <Ban className="h-4 w-4" />
-                      Free cancellation
-                    </div>
-                  )}
-                  {retreat.payment_type && (
-                    <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border bg-blue-50 text-blue-700 border-blue-200 text-sm font-medium">
-                      <CreditCard className="h-4 w-4" />
-                      {retreat.payment_type === "full"
-                        ? "Pay in full"
-                        : retreat.payment_type === "partial"
-                          ? "Partial payment"
-                          : retreat.payment_type}
-                    </div>
-                  )}
+                  ))}
                 </div>
               </section>
             )}

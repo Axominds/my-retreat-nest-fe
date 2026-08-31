@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { getRetreat, updateRetreat, uploadRetreatThumbnail, uploadRetreatBanner, deleteRetreatThumbnail, deleteRetreatBanner } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
+import { getAmenities, setRetreatAmenities } from "@/lib/api/amenities";
 import dynamic from "next/dynamic";
 
 const LocationPicker = dynamic(
@@ -17,6 +18,7 @@ const LocationPicker = dynamic(
 );
 import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
+import type { Amenity } from "@/types/amenity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,11 +27,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveImageUrl } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, Upload, X, Sparkles } from "lucide-react";
 import { GalleryManager } from "@/components/admin/gallery-manager";
 import { StaffManager } from "@/components/admin/staff-manager";
+import { AmenityChipSelector } from "@/components/admin/amenity-chip-selector";
 
-type Tab = "info" | "gallery" | "staff";
+type Tab = "info" | "gallery" | "staff" | "amenities";
 
 export default function AdminRetreatDetailPage() {
   const { adminUser, isLoading: authLoading } = useAuth();
@@ -39,6 +42,9 @@ export default function AdminRetreatDetailPage() {
 
   const [retreat, setRetreat] = useState<Retreat | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [selectedAmenityIds, setSelectedAmenityIds] = useState<number[]>([]);
+  const [savingAmenities, setSavingAmenities] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<Tab>("info");
@@ -84,6 +90,7 @@ export default function AdminRetreatDetailPage() {
       .then(([r, c]) => {
         setRetreat(r);
         setCategories(c.items);
+        setSelectedAmenityIds(r.amenities?.map((a) => a.amenity_id) ?? []);
         const links = r.social_links as Record<string, string> | undefined;
         setForm({
           name: r.name,
@@ -113,6 +120,25 @@ export default function AdminRetreatDetailPage() {
       name: val,
       slug: slugManuallyEdited ? f.slug : slugify(val),
     }));
+  }
+
+  useEffect(() => {
+    getAmenities({ page_size: 100 })
+      .then((res) => setAmenities(res.items))
+      .catch(() => toast.error("Failed to load amenities"));
+  }, []);
+
+  async function handleSaveAmenities() {
+    setSavingAmenities(true);
+    try {
+      const updated = await setRetreatAmenities(retreatId, selectedAmenityIds);
+      setRetreat((prev) => (prev ? { ...prev, amenities: updated } : prev));
+      toast.success("Amenities updated");
+    } catch {
+      toast.error("Failed to update amenities");
+    } finally {
+      setSavingAmenities(false);
+    }
   }
 
   async function handleSave() {
@@ -250,6 +276,7 @@ export default function AdminRetreatDetailPage() {
     { key: "info", label: "Info", icon: Info },
     { key: "gallery", label: "Gallery", icon: Image },
     { key: "staff", label: "Staff", icon: Users },
+    { key: "amenities", label: "Amenities", icon: Sparkles },
   ];
 
   return (
@@ -578,6 +605,41 @@ export default function AdminRetreatDetailPage() {
       {tab === "staff" && (
         <div key="staff-tab" className="animate-fade-in-up">
           <StaffManager retreatId={retreatId} />
+        </div>
+      )}
+
+      {tab === "amenities" && (
+        <div key="amenities-tab" className="animate-fade-in-up max-w-2xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                Amenities
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select the amenities this retreat offers. These will be shown on the public listing and are filterable by guests.
+              </p>
+              {amenities.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No amenities available yet. Create some in the Amenities section first.
+                </p>
+              ) : (
+                <AmenityChipSelector
+                  amenities={amenities}
+                  selected={selectedAmenityIds}
+                  onChange={setSelectedAmenityIds}
+                />
+              )}
+              <div className="flex justify-end">
+                <Button onClick={handleSaveAmenities} disabled={savingAmenities} className="gap-1.5">
+                  <Save className="h-3.5 w-3.5" />
+                  {savingAmenities ? "Saving..." : "Save Amenities"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

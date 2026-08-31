@@ -38,6 +38,7 @@ export async function getRetreats(params?: {
   rating?: number;
   sort_by?: string;
   sort_order?: string;
+  amenity_ids?: string;
 }): Promise<{ items: Retreat[]; meta: PaginationMeta }> {
   const queryParams: Record<string, string | number> = {
     page: params?.page ?? 1,
@@ -69,6 +70,9 @@ export async function getRetreats(params?: {
   }
   if (params?.sort_order) {
     queryParams.sort_order = params.sort_order;
+  }
+  if (params?.amenity_ids) {
+    queryParams.amenity_ids = params.amenity_ids;
   }
   const response = await get<Retreat[]>("/retreats/", { params: queryParams });
   return {

@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getCategories } from "@/lib/api/categories";
+import { getAmenities } from "@/lib/api/amenities";
 import { submitListingRequest } from "@/lib/api/listing-requests";
 import type { Category } from "@/types/category";
+import type { Amenity } from "@/types/amenity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +40,9 @@ import {
   Star,
   HeartHandshake,
   Shield,
+  Sparkles,
 } from "lucide-react";
+import { AmenityChipSelector } from "@/components/admin/amenity-chip-selector";
 
 const LocationPicker = dynamic(
   () =>
@@ -52,6 +56,8 @@ export default function ListYourPropertyPage() {
   const router = useRouter();
   const [step, setStep] = useState<"form" | "success">("form");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [selectedAmenityIds, setSelectedAmenityIds] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
@@ -74,6 +80,12 @@ export default function ListYourPropertyPage() {
     getCategories({ page_size: 100 })
       .then((res) => setCategories(res.items))
       .catch(() => toast.error("Failed to load categories"));
+  }, []);
+
+  useEffect(() => {
+    getAmenities({ page_size: 100 })
+      .then((res) => setAmenities(res.items))
+      .catch(() => {});
   }, []);
 
   const slugify = useCallback(
@@ -118,6 +130,7 @@ export default function ListYourPropertyPage() {
         budget_min: form.budget_min ? Number(form.budget_min) : undefined,
         budget_max: form.budget_max ? Number(form.budget_max) : undefined,
         social_links: {},
+        selected_amenities: selectedAmenityIds,
       });
       setStep("success");
     } catch {
@@ -426,6 +439,30 @@ export default function ListYourPropertyPage() {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Amenities */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              Amenities
+            </CardTitle>
+            <CardDescription>
+              Select the amenities your retreat offers. Guests can filter by these.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {amenities.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No amenities available yet.</p>
+            ) : (
+              <AmenityChipSelector
+                amenities={amenities}
+                selected={selectedAmenityIds}
+                onChange={setSelectedAmenityIds}
+              />
+            )}
           </CardContent>
         </Card>
 

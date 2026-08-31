@@ -1,3 +1,5 @@
+import type { Amenity } from "./amenity";
+
 export interface Retreat {
   retreat_id: number;
   name: string;
@@ -17,9 +19,7 @@ export interface Retreat {
   thumbnail_image?: string | null;
   banner_image?: string | null;
   average_rating?: number | null;
-  breakfast_included?: boolean | null;
-  payment_type?: string | null;
-  free_cancellation?: boolean | null;
+  amenities?: Amenity[];
 }
 
 export interface RetreatGalleryItem {

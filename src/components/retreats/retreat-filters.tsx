@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, X, DollarSign, SlidersHorizontal, Star, Coffee, Ban, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, X, DollarSign, SlidersHorizontal, Star, Coffee, ChevronDown, ChevronUp } from "lucide-react";
 import type { Category } from "@/types/category";
+import type { Amenity } from "@/types/amenity";
 
 interface RetreatFiltersProps {
   categories: Category[];
+  amenities?: Amenity[];
   onFilterChange: (filters: FilterValues) => void;
   variant?: "default" | "hero";
   initialValues?: Partial<FilterValues>;
@@ -19,48 +21,49 @@ export interface FilterValues {
   budgetMin: string;
   budgetMax: string;
   rating: string;
-  breakfastIncluded: string;
-  paymentType: string;
-  freeCancellation: string;
+  amenityIds: number[];
 }
 
-export function RetreatFilters({ categories, onFilterChange, variant = "default", initialValues }: RetreatFiltersProps) {
+export function RetreatFilters({ categories, amenities = [], onFilterChange, variant = "default", initialValues }: RetreatFiltersProps) {
   const [filters, setFilters] = useState<FilterValues>({
     search: "",
     categoryId: "all",
     budgetMin: "",
     budgetMax: "",
     rating: "",
-    breakfastIncluded: "",
-    paymentType: "",
-    freeCancellation: "",
+    amenityIds: [],
     ...initialValues,
   });
   const [showMore, setShowMore] = useState(false);
 
-  const updateFilter = (key: keyof FilterValues, value: string) => {
+  const updateFilter = (key: keyof FilterValues, value: string | number[]) => {
     const next = { ...filters, [key]: value };
     setFilters(next);
     onFilterChange(next);
   };
 
+  const toggleAmenity = (id: number) => {
+    const next = filters.amenityIds.includes(id)
+      ? filters.amenityIds.filter((a) => a !== id)
+      : [...filters.amenityIds, id];
+    updateFilter("amenityIds", next);
+  };
+
   const clearFilters = () => {
-    const cleared = { search: "", categoryId: "all", budgetMin: "", budgetMax: "", rating: "", breakfastIncluded: "", paymentType: "", freeCancellation: "" };
+    const cleared = { search: "", categoryId: "all", budgetMin: "", budgetMax: "", rating: "", amenityIds: [] };
     setFilters(cleared);
     setShowMore(false);
     onFilterChange(cleared);
   };
 
   const hasActiveFilters =
-    filters.search || filters.categoryId !== "all" || filters.budgetMin || filters.budgetMax || filters.rating || filters.breakfastIncluded || filters.paymentType || filters.freeCancellation;
+    filters.search || filters.categoryId !== "all" || filters.budgetMin || filters.budgetMax || filters.rating || filters.amenityIds.length > 0;
 
   const activeCount = [
     filters.categoryId !== "all",
     !!filters.budgetMin || !!filters.budgetMax,
     !!filters.rating,
-    !!filters.breakfastIncluded,
-    !!filters.paymentType,
-    !!filters.freeCancellation,
+    filters.amenityIds.length > 0,
   ].filter(Boolean).length;
 
   const isHero = variant === "hero";
@@ -210,91 +213,40 @@ export function RetreatFilters({ categories, onFilterChange, variant = "default"
             </div>
           </div>
 
-          {/* Breakfast */}
+          {/* Amenities */}
           <div>
             <p className={`text-[11px] font-medium uppercase tracking-wider mb-2.5 flex items-center gap-1.5 ${isHero ? "text-white/50" : "text-muted-foreground"}`}>
               <Coffee className="h-3 w-3" />
-              Breakfast
+              Amenities
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { value: "", label: "Any" },
-                { value: "yes", label: "Included" },
-                { value: "no", label: "Not included" },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => updateFilter("breakfastIncluded", opt.value)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
-                    filters.breakfastIncluded === opt.value
-                      ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
-                      : isHero
-                        ? "bg-white/10 text-white/70 border-white/10 hover:bg-white/20 hover:text-white"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Payment type */}
-          <div>
-            <p className={`text-[11px] font-medium uppercase tracking-wider mb-2.5 flex items-center gap-1.5 ${isHero ? "text-white/50" : "text-muted-foreground"}`}>
-              <CreditCard className="h-3 w-3" />
-              Payment type
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { value: "", label: "Any" },
-                { value: "online", label: "Online" },
-                { value: "pay_at_property", label: "Pay at property" },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => updateFilter("paymentType", opt.value)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
-                    filters.paymentType === opt.value
-                      ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
-                      : isHero
-                        ? "bg-white/10 text-white/70 border-white/10 hover:bg-white/20 hover:text-white"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Cancellation */}
-          <div>
-            <p className={`text-[11px] font-medium uppercase tracking-wider mb-2.5 flex items-center gap-1.5 ${isHero ? "text-white/50" : "text-muted-foreground"}`}>
-              <Ban className="h-3 w-3" />
-              Cancellation
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { value: "", label: "Any" },
-                { value: "yes", label: "Free" },
-                { value: "no", label: "Non-refundable" },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => updateFilter("freeCancellation", opt.value)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
-                    filters.freeCancellation === opt.value
-                      ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
-                      : isHero
-                        ? "bg-white/10 text-white/70 border-white/10 hover:bg-white/20 hover:text-white"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            {amenities.length === 0 ? (
+              <p className={`text-xs ${isHero ? "text-white/40" : "text-muted-foreground"}`}>
+                No amenities available.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {amenities.map((amenity) => {
+                  const active = filters.amenityIds.includes(amenity.amenity_id);
+                  return (
+                    <button
+                      key={amenity.amenity_id}
+                      type="button"
+                      onClick={() => toggleAmenity(amenity.amenity_id)}
+                      aria-pressed={active}
+                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
+                          : isHero
+                            ? "bg-white/10 text-white/70 border-white/10 hover:bg-white/20 hover:text-white"
+                            : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+                      }`}
+                    >
+                      {amenity.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

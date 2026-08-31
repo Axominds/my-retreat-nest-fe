@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getRetreats } from "@/lib/api/retreats";
 import { getCategories } from "@/lib/api/categories";
+import { getAmenities } from "@/lib/api/amenities";
 import { getWishlist } from "@/lib/api/wishlist";
 import { RetreatGrid } from "@/components/retreats/retreat-grid";
 import { RetreatFilters, type FilterValues } from "@/components/retreats/retreat-filters";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { SearchX, AlertCircle, Sparkles, Mountain, ArrowRight } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 import type { Category } from "@/types/category";
+import type { Amenity } from "@/types/amenity";
 import type { PaginationMeta } from "@/types/api";
 
 export default function RetreatsPage() {
@@ -25,6 +27,7 @@ export default function RetreatsPage() {
 
   const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,9 +38,7 @@ export default function RetreatsPage() {
     budgetMin: "",
     budgetMax: "",
     rating: "",
-    breakfastIncluded: "",
-    paymentType: "",
-    freeCancellation: "",
+    amenityIds: [],
   });
   const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -45,6 +46,12 @@ export default function RetreatsPage() {
   useEffect(() => {
     getCategories({ page_size: 100 })
       .then((c) => setCategories(c.items))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getAmenities({ page_size: 100 })
+      .then((res) => setAmenities(res.items))
       .catch(() => {});
   }, []);
 
@@ -74,6 +81,7 @@ export default function RetreatsPage() {
       budget_min: filters.budgetMin ? Number(filters.budgetMin) : undefined,
       budget_max: filters.budgetMax ? Number(filters.budgetMax) : undefined,
       rating: filters.rating ? Number(filters.rating) : undefined,
+      amenity_ids: filters.amenityIds.length ? filters.amenityIds.join(",") : undefined,
     };
 
     let cancelled = false;
@@ -159,7 +167,7 @@ export default function RetreatsPage() {
 
             <div className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: "120ms" }}>
               <div className="bg-white/25 backdrop-blur-xl rounded-xl border border-white/30 shadow-xl shadow-black/5">
-                <RetreatFilters categories={categories} onFilterChange={handleFilterChange} variant="hero" initialValues={filters} />
+                <RetreatFilters categories={categories} amenities={amenities} onFilterChange={handleFilterChange} variant="hero" initialValues={filters} />
               </div>
             </div>
           </div>

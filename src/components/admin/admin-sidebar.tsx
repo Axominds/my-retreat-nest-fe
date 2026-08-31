@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Building2, Tags, Users, FileText } from "lucide-react";
+import { Building2, Tags, Users, FileText, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getListingRequests } from "@/lib/api/listing-requests";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ const sidebarLinks = [
   { href: "/admin/listing-requests", label: "Listing Requests", icon: FileText },
   { href: "/admin/retreats", label: "Retreats", icon: Building2 },
   { href: "/admin/categories", label: "Categories", icon: Tags },
+  { href: "/admin/amenities", label: "Amenities", icon: Sparkles },
   { href: "/admin/users", label: "Users", icon: Users },
 ];
 
