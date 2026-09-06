@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { ApiError } from "@/lib/api/client";
+import {
+  getNewsletterStatus,
+  subscribeToNewsletter,
+  unsubscribeFromNewsletter,
+} from "@/lib/api/newsletter";
 import {
   Mail,
   ArrowRight,
@@ -90,20 +97,66 @@ const socialLinks: {
 
 export function Footer() {
   const pathname = usePathname();
+  const { user, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const statusCheckedFor = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    if (statusCheckedFor.current === user.user_id) return;
+    statusCheckedFor.current = user.user_id;
+    setCheckingStatus(true);
+    getNewsletterStatus()
+      .then((status) => setSubscribed(status.subscribed))
+      .catch(() => {})
+      .finally(() => setCheckingStatus(false));
+  }, [isAuthenticated, user]);
 
   if (pathname.startsWith("/admin")) return null;
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    const targetEmail =
+      isAuthenticated && user ? user.email : (email.trim() || "");
+    if (
+      !targetEmail ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)
+    ) {
       toast.error("Please enter a valid email address.");
       return;
     }
-    setSubscribed(true);
-    setEmail("");
-    toast.success("Subscribed! You're on the list.");
+    setPending(true);
+    try {
+      const response = await subscribeToNewsletter(targetEmail);
+      setSubscribed(true);
+      setEmail("");
+      toast.success(response.message || "Subscribed! You're on the list.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Failed to subscribe. Please try again."
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    setPending(true);
+    try {
+      const message = await unsubscribeFromNewsletter();
+      setSubscribed(false);
+      setEmail("");
+      toast.success(message || "You've unsubscribed from the newsletter.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Failed to unsubscribe. Please try again."
+      );
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -219,32 +272,78 @@ export function Footer() {
                 Get exclusive retreat deals and travel inspiration in your inbox.
               </p>
             </div>
-            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                aria-label="Email address"
-                className="h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
+
+            {checkingStatus ? (
               <Button
-                type="submit"
+                type="button"
                 size="lg"
-                className="h-10 shrink-0"
-                disabled={subscribed}
+                className="h-10 shrink-0 sm:justify-self-end"
+                disabled
               >
-                {subscribed ? (
-                  <>
-                    <Heart className="h-4 w-4 fill-current" /> Subscribed
-                  </>
-                ) : (
-                  <>
-                    Subscribe <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
+                Checking…
               </Button>
-            </form>
+            ) : isAuthenticated && user && subscribed ? (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <p className="text-sm text-muted-foreground min-w-0">
+                  <span className="font-medium text-foreground">
+                    You&apos;re subscribed
+                  </span>
+                  {" · "}
+                  <span className="break-all">{user.email}</span>
+                </p>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="h-10 shrink-0 sm:justify-self-end"
+                  onClick={handleUnsubscribe}
+                  disabled={pending}
+                >
+                  Unsubscribe
+                </Button>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSubscribe}
+                className="flex flex-col sm:flex-row gap-2"
+              >
+                {isAuthenticated && user ? (
+                  <p className="flex items-center text-sm text-muted-foreground min-w-0">
+                    We&apos;ll send deals to{" "}
+                    <span className="ml-1 font-medium text-foreground break-all">
+                      {user.email}
+                    </span>
+                  </p>
+                ) : (
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    aria-label="Email address"
+                    className="h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                )}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="h-10 shrink-0"
+                  disabled={subscribed || pending}
+                >
+                  {subscribed ? (
+                    <>
+                      <Heart className="h-4 w-4 fill-current" /> Subscribed
+                    </>
+                  ) : pending ? (
+                    <>Working…</>
+                  ) : (
+                    <>
+                      Subscribe <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
           </div>
         </div>
 
