@@ -39,6 +39,8 @@ export default function RetreatsPage() {
     budgetMax: "",
     rating: "",
     amenityIds: [],
+    center: null,
+    radiusKm: 25,
   });
   const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -82,6 +84,10 @@ export default function RetreatsPage() {
       budget_max: filters.budgetMax ? Number(filters.budgetMax) : undefined,
       rating: filters.rating ? Number(filters.rating) : undefined,
       amenity_ids: filters.amenityIds.length ? filters.amenityIds.join(",") : undefined,
+      latitude: filters.center?.latitude,
+      longitude: filters.center?.longitude,
+      radius_km: filters.center ? filters.radiusKm : undefined,
+      sort_by: filters.center ? "distance" : undefined,
     };
 
     let cancelled = false;
@@ -217,11 +223,14 @@ export default function RetreatsPage() {
         ) : (
           <>
             {/* Results bar */}
-            <div className="flex items-center justify-between animate-fade-in-up" style={{ animationDelay: "120ms" }}>
+            <div className="flex flex-wrap items-center justify-between gap-2 animate-fade-in-up" style={{ animationDelay: "120ms" }}>
               <p className="text-sm text-muted-foreground">
                 Page <span className="font-medium text-foreground">{meta?.page ?? page}</span> of{" "}
                 <span className="font-medium text-foreground">{meta?.total_pages ?? 1}</span> ·{" "}
                 <span className="font-medium text-foreground">{meta?.total ?? 0}</span> retreats
+                {filters.center && (
+                  <> · within <span className="font-medium text-foreground">{filters.radiusKm} km</span> of your location, nearest first</>
+                )}
               </p>
             </div>
 

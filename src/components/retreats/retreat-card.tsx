@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { resolveImageUrl } from "@/lib/constants";
-import { MapPin, TreePine, Star } from "lucide-react";
+import { MapPin, TreePine, Star, Navigation } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 
 interface RetreatCardProps {
@@ -85,6 +85,16 @@ export function RetreatCard({ retreat, categoryName, wishlistButton, index = 0 }
               <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span className="line-clamp-1">{retreat.address}</span>
+              </div>
+            )}
+            {retreat.distance_km != null && (
+              <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                <Navigation className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {retreat.distance_km < 1
+                    ? `${Math.round(retreat.distance_km * 1000)} m away`
+                    : `${retreat.distance_km.toFixed(1)} km away`}
+                </span>
               </div>
             )}
           </div>
