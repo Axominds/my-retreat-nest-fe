@@ -20,6 +20,7 @@ export interface Retreat {
   banner_image?: string | null;
   average_rating?: number | null;
   amenities?: Amenity[];
+  distance_km?: number | null;
 }
 
 export interface RetreatGalleryItem {
