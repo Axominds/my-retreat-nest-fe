@@ -1,14 +1,21 @@
+import { formatCurrencyRange } from "@/lib/format-currency";
+
 export function formatPrice(min: number | null, max: number | null): string {
-  if (min != null && max != null)
-    return `$${min.toLocaleString()} – $${max.toLocaleString()}`;
-  if (min != null) return `From $${min.toLocaleString()}`;
-  if (max != null) return `Up to $${max.toLocaleString()}`;
-  return "";
+  return formatCurrencyRange(min, max);
 }
 
-export function whatsappLink(phone: string | null | undefined, retreatName: string): string {
+export function whatsappLink(
+  phone: string | null | undefined,
+  retreatName: string,
+  subject?: string
+): string {
   const digits = (phone ?? "").replace(/\D/g, "");
-  const message = encodeURIComponent(`Hello ${retreatName}! I'd like to book a stay.`);
+  const greeting = `Hello ${retreatName}!`;
+  const message = encodeURIComponent(
+    subject
+      ? `${greeting} I'd like to enquire about the ${subject}.`
+      : `${greeting} I'd like to book a stay.`
+  );
   return `https://wa.me/${digits}?text=${message}`;
 }
 

@@ -1,6 +1,7 @@
 import type { Retreat } from "@/types/retreat";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Globe, Mail, Phone, DollarSign } from "lucide-react";
+import { MapPin, Globe, Mail, Phone, Banknote } from "lucide-react";
+import { formatCurrencyRange } from "@/lib/format-currency";
 
 interface RetreatInfoProps {
   retreat: Retreat;
@@ -8,10 +9,7 @@ interface RetreatInfoProps {
 }
 
 function formatBudget(min: number | null, max: number | null): string {
-  if (min != null && max != null) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-  if (min != null) return `From $${min.toLocaleString()}`;
-  if (max != null) return `Up to $${max.toLocaleString()}`;
-  return "";
+  return formatCurrencyRange(min, max);
 }
 
 function SocialLink({ url, label }: { url: string; label: string }) {
@@ -58,7 +56,7 @@ export function RetreatInfo({ retreat, categoryName }: RetreatInfoProps) {
 
         {price && (
           <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
+            <Banknote className="h-5 w-5 text-primary" />
             <span className="text-2xl font-semibold text-primary">{price}</span>
           </div>
         )}

@@ -32,7 +32,7 @@ import {
   ArrowLeft,
   Check,
   Building2,
-  DollarSign,
+  Banknote,
   Globe,
   Mail,
   Phone,
@@ -401,7 +401,7 @@ export default function ListYourPropertyPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Banknote className="h-4 w-4 text-muted-foreground" />
               Pricing
             </CardTitle>
             <CardDescription>
@@ -411,7 +411,7 @@ export default function ListYourPropertyPage() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="budget_min">
-                <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                <Banknote className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
                 Budget Min
               </Label>
               <Input
@@ -426,7 +426,7 @@ export default function ListYourPropertyPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="budget_max">
-                <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                <Banknote className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
                 Budget Max
               </Label>
               <Input

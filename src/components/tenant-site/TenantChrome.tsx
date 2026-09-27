@@ -17,6 +17,7 @@ export function TenantChromeHeader({ retreat }: { retreat: Retreat }) {
           <a href="#story" className="hover:text-[#1c1917] transition-colors">Story</a>
           <a href="#gallery" className="hover:text-[#1c1917] transition-colors">Gallery</a>
           <a href="#amenities" className="hover:text-[#1c1917] transition-colors">Amenities</a>
+          <a href="#stay" className="hover:text-[#1c1917] transition-colors">Stay</a>
           <a href="#visit" className="hover:text-[#1c1917] transition-colors">Visit</a>
         </nav>
         <a
@@ -81,6 +82,7 @@ export function TenantChromeFooter({ retreat }: { retreat: Retreat }) {
           <div className="mt-3 space-y-1.5 text-sm">
             <a href="#story" className="block hover:underline">Story</a>
             <a href="#gallery" className="block hover:underline">Gallery</a>
+            <a href="#stay" className="block hover:underline">Stay</a>
             <a href="#visit" className="block hover:underline">Visit</a>
           </div>
         </div>

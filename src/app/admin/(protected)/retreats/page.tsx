@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { resolveImageUrl } from "@/lib/constants";
+import { formatCurrencyRange } from "@/lib/format-currency";
 import { PaginationControls } from "@/components/retreats/pagination-controls";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
@@ -41,7 +42,6 @@ import {
   SlidersHorizontal,
   MapPin,
   Mail,
-  DollarSign,
   ArrowUpDown,
   AlertTriangle,
   Building2,
@@ -452,10 +452,7 @@ export default function AdminRetreatsPage() {
                   )}
                   {(retreat.budget_min != null || retreat.budget_max != null) && (
                     <span className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" />
-                      {retreat.budget_min != null ? `$${retreat.budget_min}` : ""}
-                      {retreat.budget_min != null && retreat.budget_max != null ? " - " : ""}
-                      {retreat.budget_max != null ? `$${retreat.budget_max}` : ""}
+                      {formatCurrencyRange(retreat.budget_min, retreat.budget_max)}
                     </span>
                   )}
                   {retreat.email && (

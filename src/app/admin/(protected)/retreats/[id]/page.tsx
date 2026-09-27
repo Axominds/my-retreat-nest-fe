@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveImageUrl } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, DollarSign, Globe, ExternalLink, Upload, X, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, Banknote, Globe, ExternalLink, Upload, X, Sparkles } from "lucide-react";
 import { GalleryManager } from "@/components/admin/gallery-manager";
 import { StaffManager } from "@/components/admin/staff-manager";
 import { AmenityChipSelector } from "@/components/admin/amenity-chip-selector";
@@ -375,7 +375,7 @@ export default function AdminRetreatDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <Banknote className="h-4 w-4 text-muted-foreground" />
                   Pricing
                 </CardTitle>
               </CardHeader>
@@ -383,14 +383,14 @@ export default function AdminRetreatDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="budget_min">
-                      <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      <Banknote className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
                       Budget Min
                     </Label>
                     <Input id="budget_min" type="number" step="0.01" value={form.budget_min} onChange={(e) => setForm((f) => ({ ...f, budget_min: e.target.value }))} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="budget_max">
-                      <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                      <Banknote className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
                       Budget Max
                     </Label>
                     <Input id="budget_max" type="number" step="0.01" value={form.budget_max} onChange={(e) => setForm((f) => ({ ...f, budget_max: e.target.value }))} />

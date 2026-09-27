@@ -3,20 +3,7 @@
 import { useEffect, useState } from "react";
 import { getReviews } from "@/lib/api/reviews";
 import type { RetreatReview } from "@/types/review";
-import { Star } from "lucide-react";
-
-function Stars({ value }: { value: number }) {
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`${value} out of 5 stars`}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          className={`h-4 w-4 ${i <= Math.round(value) ? "fill-[#b45309] text-[#b45309]" : "text-[#e7e0d2]"}`}
-        />
-      ))}
-    </span>
-  );
-}
+import { Stars } from "@/components/tenant-site/TenantStars";
 
 export function Testimonials({ retreatId }: { retreatId: number }) {
   const [reviews, setReviews] = useState<RetreatReview[] | null>(null);

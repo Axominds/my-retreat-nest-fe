@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { resolveImageUrl } from "@/lib/constants";
+import { formatCurrencyRange } from "@/lib/format-currency";
 import { MapPin, TreePine, Star, Navigation } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 
@@ -21,10 +22,7 @@ const GRADIENTS = [
 ];
 
 function formatBudget(min: number | null, max: number | null): string {
-  if (min != null && max != null) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-  if (min != null) return `From $${min.toLocaleString()}`;
-  if (max != null) return `Up to $${max.toLocaleString()}`;
-  return "";
+  return formatCurrencyRange(min, max);
 }
 
 function RatingStars({ rating }: { rating: number }) {

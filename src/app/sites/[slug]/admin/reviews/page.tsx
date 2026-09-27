@@ -14,7 +14,7 @@ export default function TenantAdminReviewsPage() {
           and can&apos;t be edited here.
         </p>
       </div>
-      <ReviewList retreatId={retreatId} />
+      <ReviewList retreatId={retreatId} canCreate={false} />
     </div>
   );
 }

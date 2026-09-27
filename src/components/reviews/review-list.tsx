@@ -14,9 +14,11 @@ import { useRouter } from "next/navigation";
 
 interface ReviewListProps {
   retreatId: number;
+  /** Admin surfaces moderate reviews, so they don't invite new ones. */
+  canCreate?: boolean;
 }
 
-export function ReviewList({ retreatId }: ReviewListProps) {
+export function ReviewList({ retreatId, canCreate = true }: ReviewListProps) {
   const { isAuthenticated, user: currentUser } = useAuth();
   const router = useRouter();
   const {
@@ -105,7 +107,7 @@ export function ReviewList({ retreatId }: ReviewListProps) {
         <h2 className="text-xl font-semibold">
           Reviews ({reviews.length})
         </h2>
-        {!existingReview && !showForm && (
+        {canCreate && !existingReview && !showForm && (
           <Button size="sm" onClick={() => (isAuthenticated ? setShowForm(true) : router.push("/login"))}>
             Write a Review
           </Button>

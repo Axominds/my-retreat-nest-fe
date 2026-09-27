@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, X, DollarSign, SlidersHorizontal, Star, Coffee, ChevronDown, ChevronUp, LocateFixed, Loader2, MapPin } from "lucide-react";
+import { Search, X, Banknote, SlidersHorizontal, Star, Coffee, ChevronDown, ChevronUp, LocateFixed, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import type { Category } from "@/types/category";
 import type { Amenity } from "@/types/amenity";
@@ -258,7 +258,7 @@ export function RetreatFilters({ categories, amenities = [], onFilterChange, var
       {/* Quick budget row */}
       <div className="mb-4">
         <p className={`text-[11px] font-medium uppercase tracking-wider mb-2.5 flex items-center gap-1.5 ${isHero ? "text-white/50" : "text-muted-foreground"}`}>
-          <DollarSign className="h-3 w-3" />
+          <Banknote className="h-3 w-3" />
           Budget range
         </p>
         <div className="flex items-center gap-2">

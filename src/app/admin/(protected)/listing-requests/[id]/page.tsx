@@ -41,7 +41,7 @@ import {
   Building2,
   Phone,
   MapPin,
-  DollarSign,
+  Banknote,
   Globe,
   Save,
   Info,
@@ -414,7 +414,7 @@ export default function AdminListingRequestDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Banknote className="h-4 w-4 text-muted-foreground" />
                 Pricing
               </CardTitle>
             </CardHeader>
@@ -422,14 +422,14 @@ export default function AdminListingRequestDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="budget_min">
-                    <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                    <Banknote className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
                     Budget Min
                   </Label>
                   <Input id="budget_min" type="number" step="0.01" value={form.budget_min} onChange={(e) => setForm((f) => ({ ...f, budget_min: e.target.value }))} disabled={!isPending} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="budget_max">
-                    <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
+                    <Banknote className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />
                     Budget Max
                   </Label>
                   <Input id="budget_max" type="number" step="0.01" value={form.budget_max} onChange={(e) => setForm((f) => ({ ...f, budget_max: e.target.value }))} disabled={!isPending} />

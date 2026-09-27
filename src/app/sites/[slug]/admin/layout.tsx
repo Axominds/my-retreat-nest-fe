@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Sparkles,
   Images,
+  BedDouble,
   Users,
   MessageSquare,
   ExternalLink,
@@ -167,6 +168,7 @@ export default function TenantAdminLayout({ children }: { children: React.ReactN
     { href: basePath(), label: "Overview", icon: LayoutDashboard },
     { href: `${basePath()}/amenities`, label: "Amenities", icon: Sparkles },
     { href: `${basePath()}/gallery`, label: "Gallery", icon: Images },
+    { href: `${basePath()}/stay`, label: "Stay", icon: BedDouble },
     { href: `${basePath()}/team`, label: "Team", icon: Users },
     { href: `${basePath()}/reviews`, label: "Reviews", icon: MessageSquare },
   ];

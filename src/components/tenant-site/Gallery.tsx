@@ -1,78 +1,77 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { API_BASE_URL } from "@/lib/constants";
+import { useCallback, useMemo, useState } from "react";
+import { getImageUrl } from "@/lib/constants";
 import type { RetreatGalleryItem, GalleryCategory } from "@/types/retreat";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { PhotoLightbox } from "@/components/tenant-site/PhotoLightbox";
+import { Camera } from "lucide-react";
 
 interface GalleryProps {
   retreatId: number;
   galleryCategories: GalleryCategory[];
   initialGalleries: RetreatGalleryItem[];
+  /** Photos on the server, which can exceed the page we were handed. */
+  totalCount?: number;
 }
 
-function imageUrl(retreatId: number, galleryId: number): string {
-  return `${API_BASE_URL}/retreats/${retreatId}/galleries/${galleryId}/image/`;
-}
+/** One hero tile plus four supporting tiles, as on Booking.com. */
+const MOSAIC_SIZE = 5;
 
-export function Gallery({ retreatId, galleryCategories, initialGalleries }: GalleryProps) {
+export function Gallery({
+  retreatId,
+  galleryCategories,
+  initialGalleries,
+  totalCount,
+}: GalleryProps) {
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
-  const [lightbox, setLightbox] = useState<number | null>(null);
+  const [lightboxId, setLightboxId] = useState<number | null>(null);
 
   const items = useMemo(
     () =>
       activeCategory == null
         ? initialGalleries
-        : initialGalleries.filter((g) => g.gallery_category_id === activeCategory),
+        : initialGalleries.filter(
+            (g) => g.gallery_category_id === activeCategory
+          ),
     [activeCategory, initialGalleries]
   );
 
-  const close = useCallback(() => setLightbox(null), []);
-  const step = useCallback(
-    (dir: 1 | -1) => {
-      setLightbox((current) => {
-        if (current == null || items.length === 0) return current;
-        const idx = items.findIndex((g) => g.gallery_id === current);
-        const next = (idx + dir + items.length) % items.length;
-        return items[next].gallery_id;
-      });
-    },
-    [items]
-  );
-
-  useEffect(() => {
-    if (lightbox == null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      if (e.key === "ArrowRight") step(1);
-      if (e.key === "ArrowLeft") step(-1);
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [lightbox, close, step]);
+  const close = useCallback(() => setLightboxId(null), []);
+  const navigate = useCallback((galleryId: number) => setLightboxId(galleryId), []);
 
   if (initialGalleries.length === 0) return null;
 
-  const active = lightbox != null ? items.find((g) => g.gallery_id === lightbox) : undefined;
+  const isFiltered = activeCategory != null;
+  const photoCount = isFiltered ? items.length : (totalCount ?? items.length);
+  const mosaic = items.slice(0, MOSAIC_SIZE);
+  const supporting = mosaic.slice(1);
+  // A 2x2 block cannot hold three tiles without a hole, so odd leftovers
+  // stack as a single column instead.
+  const supportingCols = supporting.length === 1 || supporting.length === 3 ? 1 : 2;
 
   return (
     <section id="gallery" className="scroll-mt-24">
       <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
+        <div className="flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
+          <div className="md:max-w-xl">
             <p className="ts-overline text-[#b45309]">Gallery</p>
             <h2 className="ts-display mt-3 text-3xl font-medium leading-tight md:text-5xl">
               Moments from the retreat
             </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-[#78716c]">
+              {photoCount} {photoCount === 1 ? "photo" : "photos"}
+              {isFiltered ? " in this collection" : ""} — select any to view it
+              full screen.
+            </p>
           </div>
+
           {galleryCategories.length > 1 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[11px] uppercase tracking-[0.18em] text-[#a8a29e]">
+                Filter
+              </span>
               <FilterChip
-                active={activeCategory == null}
+                active={!isFiltered}
                 label="All"
                 onClick={() => setActiveCategory(null)}
               />
@@ -88,86 +87,110 @@ export function Gallery({ retreatId, galleryCategories, initialGalleries }: Gall
           )}
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-          {items.map((item, i) => (
-            <button
-              key={item.gallery_id}
-              type="button"
-              onClick={() => setLightbox(item.gallery_id)}
-              className={`group relative overflow-hidden rounded-[var(--ts-radius)] bg-[#e7e0d2] text-left ${
-                i === 0 ? "col-span-2 row-span-2 aspect-[16/10] md:aspect-auto md:min-h-[420px]" : "aspect-square"
-              }`}
-            >
-              <img
-                src={imageUrl(retreatId, item.gallery_id)}
-                alt={item.caption ?? "Retreat photo"}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        {mosaic.length === 0 ? (
+          <p className="mt-10 text-[#78716c]">No photos in this collection yet.</p>
+        ) : (
+          <div className="relative mt-10">
+            {mosaic.length === 1 ? (
+              <MosaicTile
+                retreatId={retreatId}
+                item={mosaic[0]}
+                onOpen={() => setLightboxId(mosaic[0].gallery_id)}
+                className="relative h-[280px] w-full md:h-[420px]"
               />
-              {item.caption && (
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-10 text-sm text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  {item.caption}
+            ) : (
+              <div className="grid gap-2 md:h-[460px] md:grid-cols-[2fr_1fr]">
+                <MosaicTile
+                  retreatId={retreatId}
+                  item={mosaic[0]}
+                  onOpen={() => setLightboxId(mosaic[0].gallery_id)}
+                  className="relative aspect-[16/10] md:aspect-auto"
+                />
+                <div
+                  className={`grid grid-cols-2 gap-2 md:gap-2 ${
+                    supportingCols === 1 ? "md:grid-cols-1" : "md:grid-cols-2"
+                  }`}
+                >
+                  {supporting.map((item, i) => (
+                    <MosaicTile
+                      key={item.gallery_id}
+                      retreatId={retreatId}
+                      item={item}
+                      onOpen={() => setLightboxId(item.gallery_id)}
+                      // An odd trailing tile would leave half a row empty on
+                      // mobile, so let it span the full width there.
+                      className={`relative aspect-square md:aspect-auto ${
+                        supporting.length % 2 === 1 && i === supporting.length - 1
+                          ? "col-span-2 md:col-span-1"
+                          : ""
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {items.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setLightboxId(mosaic[0].gallery_id)}
+                className="group absolute bottom-4 right-4 z-10 inline-flex items-center gap-2.5 rounded-full bg-white/95 py-2 pl-2 pr-4 text-[13px] font-semibold text-[#1c1917] shadow-lg shadow-black/25 backdrop-blur transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#2f4a3c] text-[#f5f1e6]">
+                  <Camera className="h-3.5 w-3.5" />
                 </span>
-              )}
-            </button>
-          ))}
-        </div>
-        {items.length === 0 && (
-          <p className="mt-8 text-[#78716c]">No photos in this collection yet.</p>
+                Show all {photoCount}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {active && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={active.caption ?? "Photo viewer"}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 p-4"
-          onClick={close}
-        >
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={close}
-            className="absolute right-5 top-5 rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          {items.length > 1 && (
-            <>
-              <button
-                type="button"
-                aria-label="Previous photo"
-                onClick={(e) => { e.stopPropagation(); step(-1); }}
-                className="absolute left-3 rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20 md:left-8"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Next photo"
-                onClick={(e) => { e.stopPropagation(); step(1); }}
-                className="absolute right-3 rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20 md:right-8"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </>
-          )}
-          <figure className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={imageUrl(retreatId, active.gallery_id)}
-              alt={active.caption ?? "Retreat photo"}
-              className="max-h-[80vh] w-auto rounded object-contain"
-            />
-            {active.caption && (
-              <figcaption className="mt-3 text-center text-sm text-white/80">
-                {active.caption}
-              </figcaption>
-            )}
-          </figure>
-        </div>
-      )}
+      <PhotoLightbox
+        retreatId={retreatId}
+        items={items}
+        activeId={lightboxId}
+        onClose={close}
+        onNavigate={navigate}
+      />
     </section>
+  );
+}
+
+function MosaicTile({
+  retreatId,
+  item,
+  onOpen,
+  className = "",
+}: {
+  retreatId: number;
+  item: RetreatGalleryItem;
+  onOpen: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={item.caption ? `View photo: ${item.caption}` : "View photo"}
+      className={`group overflow-hidden rounded-[var(--ts-radius)] bg-[#e7e0d2] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f4a3c] focus-visible:ring-offset-2 ${className}`}
+    >
+      <img
+        src={getImageUrl(retreatId, item.gallery_id)}
+        alt={item.caption ?? "Retreat photo"}
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10"
+      />
+      {item.caption && (
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-4 pt-12 text-sm text-white opacity-0 transition-opacity group-hover:opacity-100">
+          {item.caption}
+        </span>
+      )}
+    </button>
   );
 }
 

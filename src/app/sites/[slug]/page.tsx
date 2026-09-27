@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getGalleries } from "@/lib/api/retreats";
+import { getPackages, getRoomTypes } from "@/lib/api/retreat-offerings";
 import { getCategories } from "@/lib/api/categories";
 import { API_BASE_URL } from "@/lib/constants";
 import { getGalleryCategories } from "@/lib/api/gallery-categories";
@@ -52,6 +53,13 @@ export default async function TenantHomePage({ params }: TenantHomePageProps) {
     (c) => c.category_id === retreat.category_id
   )?.name;
 
+  // Offerings are supplementary: if they fail to load the page should still
+  // render, just without the Stay section. Only the core data above 404s.
+  const [roomTypes, packages] = await Promise.all([
+    getRoomTypes(retreat.retreat_id).catch(() => []),
+    getPackages(retreat.retreat_id).catch(() => []),
+  ]);
+
   const Theme = getTenantHomepage(null);
   return (
     <>
@@ -61,6 +69,9 @@ export default async function TenantHomePage({ params }: TenantHomePageProps) {
         categoryName={categoryName}
         galleryCategories={galleryCategories}
         galleries={galleries.items}
+        galleryTotal={galleries.meta?.total ?? galleries.items.length}
+        roomTypes={roomTypes}
+        packages={packages}
       />
       <TenantChromeFooter retreat={retreat} />
     </>
