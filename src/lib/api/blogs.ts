@@ -17,6 +17,7 @@ export async function getBlogs(params?: {
   is_published?: boolean;
   search?: string;
   tag?: string;
+  tags?: string[];
   sort_by?: string;
 }): Promise<{ items: Blog[]; meta: PaginationMeta }> {
   const queryParams: Record<string, string | number> = {
@@ -31,6 +32,9 @@ export async function getBlogs(params?: {
   }
   if (params?.tag) {
     queryParams.tag = params.tag;
+  }
+  if (params?.tags && params.tags.length > 0) {
+    queryParams.tags = params.tags.join(",");
   }
   if (params?.sort_by) {
     queryParams.sort_by = params.sort_by;

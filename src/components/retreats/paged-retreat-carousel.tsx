@@ -60,7 +60,7 @@ export function PagedRetreatCarousel({
         if (id !== requestId.current) return;
         setRetreats(result.items);
         setMeta(result.meta);
-        setPage(targetPage);
+        setPage((current) => (current === targetPage ? current : targetPage));
       } catch {
         if (id === requestId.current) setError("Failed to load retreats");
       } finally {

@@ -7,10 +7,24 @@ import { BlogGrid } from "@/components/blogs/blog-grid";
 import { PaginationControls } from "@/components/retreats/pagination-controls";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SearchX, AlertCircle, Newspaper, X } from "lucide-react";
+import { SearchX, AlertCircle, Newspaper, X, Check, Tag as TagIcon } from "lucide-react";
 import { Search } from "lucide-react";
 import type { Blog } from "@/types/blog";
 import type { PaginationMeta } from "@/types/api";
+
+function parseSelectedTags(sp: URLSearchParams): string[] {
+  const raw = [sp.get("tags"), sp.get("tag")]
+    .filter((value): value is string => Boolean(value))
+    .join(",");
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0)
+    )
+  );
+}
 
 export default function BlogsContent() {
   const searchParams = useSearchParams();
@@ -22,9 +36,12 @@ export default function BlogsContent() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
   const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [activeTag, setActiveTag] = useState<string | null>(searchParams.get("tag"));
+  const [activeTags, setActiveTags] = useState<string[]>(() =>
+    parseSelectedTags(new URLSearchParams(searchParams.toString()))
+  );
   const [sortBy, setSortBy] = useState("newest");
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
 
   useEffect(() => {
     getBlogTags()
@@ -33,19 +50,24 @@ export default function BlogsContent() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     const apiParams = {
       page,
       page_size: 12,
       is_published: true,
-      search: search || undefined,
-      tag: activeTag || undefined,
+      search: debouncedSearch || undefined,
+      tags: activeTags.length > 0 ? activeTags : undefined,
       sort_by: sortBy === "oldest" ? "oldest" : undefined,
     };
 
     let cancelled = false;
     let transitionTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const debounceTimer = setTimeout(() => {
+    const startTimer = setTimeout(() => {
       if (cancelled) return;
       setIsLoading(true);
       setError(null);
@@ -66,22 +88,39 @@ export default function BlogsContent() {
           setIsLoading(false);
           transitionTimer = setTimeout(() => setIsTransitioning(false), 300);
         });
-    }, 300);
+    }, 0);
 
     return () => {
       cancelled = true;
-      clearTimeout(debounceTimer);
+      clearTimeout(startTimer);
       if (transitionTimer) clearTimeout(transitionTimer);
     };
-  }, [page, search, activeTag, sortBy]);
+  }, [page, debouncedSearch, activeTags, sortBy]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
     setPage(1);
   };
 
-  const handleTagSelect = (tag: string | null) => {
-    setActiveTag(tag);
+  const toggleTag = (tag: string) => {
+    setActiveTags((current) =>
+      current.includes(tag)
+        ? current.filter((selected) => selected !== tag)
+        : [...current, tag]
+    );
+    setPage(1);
+  };
+
+  const clearTags = () => {
+    setActiveTags([]);
+    setPage(1);
+  };
+
+  const hasFilters = activeTags.length > 0 || search.trim().length > 0;
+
+  const clearAll = () => {
+    setActiveTags([]);
+    setSearch("");
     setPage(1);
   };
 
@@ -115,8 +154,18 @@ export default function BlogsContent() {
                 placeholder="Search blogs..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="h-12 pl-14 text-sm bg-white/10 border-white/10 text-white placeholder:text-white/50 focus:border-white/30 focus:ring-white/20"
+                className="h-12 pl-14 pr-12 text-sm bg-white/10 border-white/10 text-white placeholder:text-white/50 focus:border-white/30 focus:ring-white/20"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange("")}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -124,37 +173,49 @@ export default function BlogsContent() {
 
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Tag filter + sort */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1.5 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <TagIcon className="h-3.5 w-3.5" />
+              Tags
+            </span>
             <button
-              onClick={() => handleTagSelect(null)}
-              className={`text-xs px-3.5 py-1.5 rounded-lg border transition-all duration-200 ${
-                activeTag === null
+              onClick={clearTags}
+              aria-pressed={activeTags.length === 0}
+              className={`inline-flex items-center gap-1 text-xs px-3.5 py-1.5 rounded-lg border transition-all duration-200 ${
+                activeTags.length === 0
                   ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
                   : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
               }`}
             >
               All
             </button>
-            {tags.map((tag) => (
+            {tags.map((tag) => {
+              const isSelected = activeTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  aria-pressed={isSelected}
+                  className={`inline-flex items-center gap-1 text-xs px-3.5 py-1.5 rounded-lg border transition-all duration-200 ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
+                      : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  {isSelected && <Check className="h-3 w-3" />}
+                  {tag}
+                </button>
+              );
+            })}
+            {activeTags.length > 0 && (
               <button
-                key={tag}
-                onClick={() => handleTagSelect(activeTag === tag ? null : tag)}
-                className={`text-xs px-3.5 py-1.5 rounded-lg border transition-all duration-200 ${
-                  activeTag === tag
-                    ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-                }`}
+                type="button"
+                onClick={clearTags}
+                aria-label="Clear selected tags"
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                {tag}
-              </button>
-            ))}
-            {activeTag && (
-              <button
-                onClick={() => handleTagSelect(null)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5"
-              >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
                 Clear
               </button>
             )}
@@ -167,6 +228,7 @@ export default function BlogsContent() {
               <button
                 key={opt.value}
                 onClick={() => { setSortBy(opt.value); setPage(1); }}
+                aria-pressed={sortBy === opt.value}
                 className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 ${
                   sortBy === opt.value
                     ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
@@ -212,18 +274,36 @@ export default function BlogsContent() {
             </div>
             <h3 className="text-lg font-semibold">No blogs found</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Try a different search term or tag.
+              {hasFilters
+                ? "No stories match the filters you picked. Try removing one."
+                : "Try a different search term or tag."}
             </p>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-primary px-3.5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                <X className="h-4 w-4" />
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between animate-fade-in-up" style={{ animationDelay: "120ms" }}>
               <p className="text-sm text-muted-foreground">
-                Page <span className="font-medium text-foreground">{meta?.page ?? page}</span> of{" "}
-                <span className="font-medium text-foreground">{meta?.total_pages ?? 1}</span> ·{" "}
-                <span className="font-medium text-foreground">{meta?.total ?? 0}</span> blogs
-                {activeTag && (
-                  <> tagged <span className="font-medium text-foreground">{activeTag}</span></>
+                <span className="font-medium tabular-nums text-foreground">
+                  {meta?.total ?? 0}
+                </span>{" "}
+                {meta?.total === 1 ? "blog" : "blogs"}
+                {activeTags.length > 0 && (
+                  <>
+                    {" "}tagged{" "}
+                    <span className="font-medium text-foreground">
+                      {activeTags.join(" or ")}
+                    </span>
+                  </>
                 )}
               </p>
             </div>

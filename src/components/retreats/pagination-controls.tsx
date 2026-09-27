@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { PaginationMeta } from "@/types/api";
 
 interface PaginationControlsProps {
@@ -9,67 +10,96 @@ interface PaginationControlsProps {
   onPageChange: (page: number) => void;
 }
 
-export function PaginationControls({ meta, onPageChange }: PaginationControlsProps) {
-  if (meta.total_pages <= 1) return null;
+type PageItem = number | "gap";
 
-  const pages: (number | "...")[] = [];
-  const maxVisible = 5;
-
-  if (meta.total_pages <= maxVisible + 2) {
-    for (let i = 1; i <= meta.total_pages; i++) pages.push(i);
-  } else {
-    pages.push(1);
-    if (meta.page > 3) pages.push("...");
-    const start = Math.max(2, meta.page - 1);
-    const end = Math.min(meta.total_pages - 1, meta.page + 1);
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (meta.page < meta.total_pages - 2) pages.push("...");
-    pages.push(meta.total_pages);
+function buildPages(current: number, total: number): PageItem[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
   }
 
+  const pages: PageItem[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+
+  if (start > 2) pages.push("gap");
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < total - 1) pages.push("gap");
+  pages.push(total);
+
+  return pages;
+}
+
+export function PaginationControls({ meta, onPageChange }: PaginationControlsProps) {
+  const total = meta.total_pages;
+  if (total <= 1) return null;
+
+  const current = meta.page;
+  const pages = buildPages(current, total);
+
   return (
-    <div className="flex items-center justify-center gap-1.5">
-      <Button
-        variant="outline"
-        size="icon"
-        disabled={meta.page <= 1}
-        onClick={() => onPageChange(meta.page - 1)}
-        className="h-9 w-9"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
+    <nav
+      aria-label="Pagination"
+      className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between"
+    >
+      <p className="order-2 text-sm text-muted-foreground sm:order-1">
+        Page{" "}
+        <span className="font-medium tabular-nums text-foreground">{current}</span>{" "}
+        of{" "}
+        <span className="font-medium tabular-nums text-foreground">{total}</span>
+      </p>
 
-      {pages.map((p, i) =>
-        p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-sm select-none">
-            ...
-          </span>
-        ) : (
-          <Button
-            key={p}
-            variant={p === meta.page ? "default" : "outline"}
-            size="icon"
-            onClick={() => onPageChange(p)}
-            className={`h-9 w-9 transition-all duration-200 ${
-              p === meta.page
-                ? "shadow-sm scale-105"
-                : "hover:scale-105"
-            }`}
-          >
-            {p}
-          </Button>
-        )
-      )}
+      <div className="order-1 flex items-center gap-1 sm:order-2">
+        <Button
+          variant="outline"
+          size="icon-lg"
+          aria-label="Previous page"
+          disabled={current <= 1}
+          onClick={() => onPageChange(current - 1)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
 
-      <Button
-        variant="outline"
-        size="icon"
-        disabled={meta.page >= meta.total_pages}
-        onClick={() => onPageChange(meta.page + 1)}
-        className="h-9 w-9"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
+        {pages.map((p, i) =>
+          p === "gap" ? (
+            <span
+              key={`gap-${i}`}
+              aria-hidden
+              className="flex h-9 w-6 select-none items-center justify-center text-sm text-muted-foreground/60"
+            >
+              &hellip;
+            </span>
+          ) : (
+            <Button
+              key={p}
+              variant={p === current ? "default" : "ghost"}
+              size="icon-lg"
+              aria-label={`Page ${p}`}
+              aria-current={p === current ? "page" : undefined}
+              onClick={() => onPageChange(p)}
+              className={cn(
+                "tabular-nums transition-all duration-200",
+                p === current
+                  ? "shadow-sm"
+                  : "text-muted-foreground hover:scale-105"
+              )}
+            >
+              {p}
+            </Button>
+          )
+        )}
+
+        <Button
+          variant="outline"
+          size="icon-lg"
+          aria-label="Next page"
+          disabled={current >= total}
+          onClick={() => onPageChange(current + 1)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </nav>
   );
 }
