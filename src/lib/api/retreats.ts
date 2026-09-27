@@ -1,4 +1,4 @@
-import { get, post, patch, del, postForm } from "@/lib/api/client";
+import { get, post, patch, del, postForm, patchForm } from "@/lib/api/client";
 import type { Retreat, RetreatGalleryItem, RetreatStaffMember } from "@/types/retreat";
 import type { PaginationMeta } from "@/types/api";
 
@@ -195,9 +195,29 @@ export async function deleteRetreatBanner(retreatId: number): Promise<void> {
 export async function updateGallery(
   retreatId: number,
   galleryId: number,
-  payload: { caption?: string; gallery_category_id?: number | null }
+  payload: {
+    caption?: string | null;
+    gallery_category_id?: number | null;
+    image?: File;
+  }
 ): Promise<RetreatGalleryItem> {
-  const response = await patch<RetreatGalleryItem>(`/retreats/${retreatId}/galleries/${galleryId}/`, payload, { auth: true });
+  // The backend handler (routes/retreat_galleries.rs) declares a `Multipart`
+  // extractor, so this PATCH must be sent as form-data, not JSON.
+  const formData = new FormData();
+  if (payload.caption !== undefined) {
+    formData.append("caption", payload.caption ?? "");
+  }
+  if (payload.gallery_category_id != null) {
+    formData.append("gallery_category_id", String(payload.gallery_category_id));
+  }
+  if (payload.image) {
+    formData.append("image", payload.image);
+  }
+  const response = await patchForm<RetreatGalleryItem>(
+    `/retreats/${retreatId}/galleries/${galleryId}/`,
+    formData,
+    { auth: true }
+  );
   return response.data;
 }
 
@@ -216,6 +236,21 @@ export async function createRetreatUser(
 ): Promise<string> {
   const response = await post<null>(`/retreats/${retreatId}/users/`, payload, { auth: true });
   return response.message ?? "";
+}
+
+export async function updateRetreatUser(
+  retreatId: number,
+  retreatUserId: number,
+  payload: { role: string }
+): Promise<RetreatStaffMember> {
+  // Backend takes Json<UpdateRetreatUserSerializer> for this route, so a JSON
+  // PATCH is correct here (unlike the gallery routes, which take Multipart).
+  const response = await patch<RetreatStaffMember>(
+    `/retreats/${retreatId}/users/${retreatUserId}/`,
+    payload,
+    { auth: true }
+  );
+  return response.data;
 }
 
 export async function deleteRetreatUser(retreatId: number, retreatUserId: number): Promise<void> {

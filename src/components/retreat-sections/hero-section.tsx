@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronRight, MapPin, Star, TreePine } from "lucide-react";
+import { ArrowLeft, ChevronRight, TreePine } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 
 interface HeroSectionProps {
   retreat: Retreat;
-  categoryName?: string;
   heroImage: string | null;
   /** Back navigation. Hidden when omitted (tenant homepage). */
   backHref?: string;
@@ -17,7 +15,6 @@ interface HeroSectionProps {
 
 export function HeroSection({
   retreat,
-  categoryName,
   heroImage,
   backHref,
   backLabel = "Retreats",
@@ -85,30 +82,9 @@ export function HeroSection({
               <span className="text-white/80 truncate">{retreat.name}</span>
             </div>
           )}
-          {categoryName && (
-            <Badge className="bg-white/15 text-white border-0 mb-3 text-xs backdrop-blur-sm">
-              {categoryName}
-            </Badge>
-          )}
           <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-lg leading-tight">
             {retreat.name}
           </h1>
-          <div className="flex flex-wrap items-center gap-3 mt-3">
-            {retreat.address && (
-              <p className="text-white/70 flex items-center gap-1.5 text-sm md:text-base">
-                <MapPin className="h-4 w-4" />
-                {retreat.address}
-              </p>
-            )}
-            {retreat.average_rating != null && (
-              <div className="flex items-center gap-1.5">
-                <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                <span className="text-white font-semibold">
-                  {retreat.average_rating.toFixed(1)}
-                </span>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </section>

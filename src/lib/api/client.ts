@@ -288,6 +288,41 @@ export async function del<T>(
   return parseResponse<T>(response);
 }
 
+export async function patchForm<T>(
+  path: string,
+  formData: FormData,
+  options?: { auth?: boolean }
+): Promise<ApiEnvelope<T>> {
+  const buildFormHeaders = (): Record<string, string> => {
+    const h: Record<string, string> = {};
+    const token = getAccessToken();
+    if (options?.auth && token) {
+      h["Authorization"] = `Bearer ${token}`;
+    }
+    return h;
+  };
+  let headers = buildFormHeaders();
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers,
+    body: formData,
+  });
+  if (response.status === 403 && options?.auth) {
+    const loginType = getLoginType();
+    if (await attemptRefresh()) {
+      headers = buildFormHeaders();
+      const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
+        method: "PATCH",
+        headers,
+        body: formData,
+      });
+      return parseResponse<T>(retryResponse);
+    }
+    redirectToLogin(loginType);
+  }
+  return parseResponse<T>(response);
+}
+
 export async function postForm<T>(
   path: string,
   formData: FormData,

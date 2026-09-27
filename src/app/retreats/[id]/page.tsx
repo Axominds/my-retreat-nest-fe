@@ -52,7 +52,6 @@ export default async function RetreatDetailPage({
     <div className="min-h-screen bg-background">
       <HeroSection
         retreat={retreat}
-        categoryName={categoryName}
         heroImage={heroImage}
         backHref="/retreats"
         backLabel="Retreats"
