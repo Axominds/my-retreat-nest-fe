@@ -12,6 +12,7 @@ import {
 import { setAccessToken, clearTokens } from "@/lib/api/client";
 import { login as apiLogin, logout as apiLogout, refreshToken as apiRefresh } from "@/lib/api/auth";
 import { usePathname } from "next/navigation";
+import { tenantSlugFromHost } from "@/lib/tenant-host";
 import type { User } from "@/types/user";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -42,9 +43,11 @@ function extractUserFromToken(token: string): User | null {
 interface AuthState {
   normalUser: User | null;
   adminUser: User | null;
+  retreatUser: User | null;
   normalAccessToken: string | null;
   adminAccessToken: string | null;
-  activeLoginType: "normal" | "admin" | null;
+  retreatAccessToken: string | null;
+  activeLoginType: "normal" | "admin" | "retreat" | null;
   isLoading: boolean;
 }
 
@@ -56,6 +59,7 @@ interface AuthContextValue {
 
   normalUser: User | null;
   adminUser: User | null;
+  retreatUser: User | null;
   activeLoginType: string | null;
 
   login: (email: string, password: string, loginType?: string) => Promise<void>;
@@ -69,12 +73,21 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
+  // Tenant admin URLs look like "/admin/..." to the browser while the real
+  // route is rewritten — only apex "/admin" uses the admin session slot.
+  const onTenantHost =
+    typeof window !== "undefined" &&
+    tenantSlugFromHost(window.location.hostname) != null;
+  const isAdminRoute = pathname.startsWith("/admin") && !onTenantHost;
+  const isTenantAdminRoute =
+    onTenantHost && pathname.startsWith("/admin");
   const [state, setState] = useState<AuthState>({
     normalUser: null,
     adminUser: null,
+    retreatUser: null,
     normalAccessToken: null,
     adminAccessToken: null,
+    retreatAccessToken: null,
     activeLoginType: null,
     isLoading: true,
   });
@@ -91,6 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (loginType === "admin") {
         next.adminUser = user;
         next.adminAccessToken = token;
+      } else if (loginType === "retreat") {
+        next.retreatUser = user;
+        next.retreatAccessToken = token;
       } else {
         next.normalUser = user;
         next.normalAccessToken = token;
@@ -104,6 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (loginType === "admin" && prev.adminUser) {
         return { ...prev, activeLoginType: "admin" };
       }
+      if (loginType === "retreat" && prev.retreatUser) {
+        return { ...prev, activeLoginType: "retreat" };
+      }
       if (loginType === "normal" && prev.normalUser) {
         return { ...prev, activeLoginType: "normal" };
       }
@@ -116,14 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = response.data.access_token;
     const user = extractUserFromToken(token);
     setSession(loginType, token, user);
-    setState((prev) => ({ ...prev, activeLoginType: loginType as "admin" | "normal", isLoading: false }));
+    setState((prev) => ({ ...prev, activeLoginType: loginType as "admin" | "normal" | "retreat", isLoading: false }));
   }, [setSession]);
 
   const logout = useCallback(async () => {
     const current = stateRef.current;
     const loginType = isAdminRoute
       ? (current.adminUser ? "admin" : undefined)
-      : (current.normalUser ? "normal" : undefined);
+      : isTenantAdminRoute
+        ? (current.retreatUser ? "retreat" : undefined)
+        : (current.normalUser ? "normal" : undefined);
     try {
       await apiLogout(loginType);
     } catch {
@@ -134,8 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({
         normalUser: null,
         adminUser: null,
+        retreatUser: null,
         normalAccessToken: null,
         adminAccessToken: null,
+        retreatAccessToken: null,
         activeLoginType: null,
         isLoading: false,
       });
@@ -147,16 +170,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (loginType === "admin") {
         updated.adminUser = null;
         updated.adminAccessToken = null;
+      } else if (loginType === "retreat") {
+        updated.retreatUser = null;
+        updated.retreatAccessToken = null;
       } else {
         updated.normalUser = null;
         updated.normalAccessToken = null;
       }
       return updated;
     });
-  }, [isAdminRoute]);
+  }, [isAdminRoute, isTenantAdminRoute]);
 
   const refreshSession = useCallback(async (loginType?: string): Promise<boolean> => {
-    const types = loginType ? [loginType] : ["admin", "normal"];
+    // Route-aware defaults: tenant admin refreshes the retreat session,
+    // apex admin the admin session, everything else keeps legacy behavior.
+    const defaultTypes = isTenantAdminRoute
+      ? ["retreat"]
+      : isAdminRoute
+        ? ["admin"]
+        : ["admin", "normal"];
+    const types = loginType ? [loginType] : defaultTypes;
     let anySuccess = false;
 
     for (const t of types) {
@@ -170,6 +203,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (t === "admin") {
             next.adminUser = user;
             next.adminAccessToken = token;
+          } else if (t === "retreat") {
+            next.retreatUser = user;
+            next.retreatAccessToken = token;
           } else {
             next.normalUser = user;
             next.normalAccessToken = token;
@@ -184,6 +220,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (t === "admin") {
             next.adminUser = null;
             next.adminAccessToken = null;
+          } else if (t === "retreat") {
+            next.retreatUser = null;
+            next.retreatAccessToken = null;
           } else {
             next.normalUser = null;
             next.normalAccessToken = null;
@@ -193,27 +232,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Finalize: pick active session if none set — prefer normal
+    // Finalize: pick active session if none set — prefer the route's own slot.
     setState((prev) => {
       const next = { ...prev, isLoading: false };
       if (prev.activeLoginType) return next;
-      if (types.includes("normal") && prev.normalUser) {
+      if (types.includes("retreat") && prev.retreatUser) {
+        next.activeLoginType = "retreat";
+      } else if (types.includes("normal") && prev.normalUser) {
         next.activeLoginType = "normal";
       }
       return next;
     });
 
     return anySuccess;
-  }, []);
+  }, [isAdminRoute, isTenantAdminRoute]);
 
   const updateUser = useCallback((user: User) => {
     setState((prev) => {
       if (isAdminRoute) {
         return { ...prev, adminUser: user };
       }
+      if (isTenantAdminRoute) {
+        return { ...prev, retreatUser: user };
+      }
       return { ...prev, normalUser: user };
     });
-  }, [isAdminRoute]);
+  }, [isAdminRoute, isTenantAdminRoute]);
 
   const initDone = useRef(false);
   useEffect(() => {
@@ -222,14 +266,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshSession();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The active session follows the current portal: an admin session is not
-  // valid on normal routes (and vice versa). If the current portal has no
-  // session, the user is treated as logged out.
+  // The active session follows the current route: apex admin uses the admin
+  // slot, tenant admin the retreat slot, everything else the normal slot.
+  // If the route's slot has no session, the user is treated as logged out.
   const activeLoginType = isAdminRoute
     ? (state.adminUser ? "admin" : null)
-    : (state.normalUser ? "normal" : null);
-  const activeUser = activeLoginType === "admin" ? state.adminUser : state.normalUser;
-  const activeAccessToken = activeLoginType === "admin" ? state.adminAccessToken : state.normalAccessToken;
+    : isTenantAdminRoute
+      ? (state.retreatUser ? "retreat" : null)
+      : (state.normalUser ? "normal" : null);
+  const activeUser =
+    activeLoginType === "admin"
+      ? state.adminUser
+      : activeLoginType === "retreat"
+        ? state.retreatUser
+        : state.normalUser;
+  const activeAccessToken =
+    activeLoginType === "admin"
+      ? state.adminAccessToken
+      : activeLoginType === "retreat"
+        ? state.retreatAccessToken
+        : state.normalAccessToken;
 
   return (
     <AuthContext.Provider
@@ -240,6 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: activeUser !== null,
         normalUser: state.normalUser,
         adminUser: state.adminUser,
+        retreatUser: state.retreatUser,
         activeLoginType,
         login,
         logout,

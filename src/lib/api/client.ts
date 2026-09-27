@@ -1,4 +1,5 @@
 import { API_BASE_URL, getPortalType } from "@/lib/constants";
+import { tenantSlugFromHost } from "@/lib/tenant-host";
 import type { ApiEnvelope } from "@/types/api";
 
 export class ApiError extends Error {
@@ -33,14 +34,29 @@ export function setAccessToken(type: string, token: string | null) {
   }
 }
 
+/**
+ * Resolves the active portal deterministically. sessionStorage (written by
+ * PortalTypeSetter in a parent effect) can still hold the *previous* page's
+ * value when child data-fetching effects run — e.g. right after tenant-admin
+ * login the stored portal is still "admin" while the token lives in the
+ * "retreat" slot. The URL itself is always current, so tenant admin URLs win.
+ */
+function currentPortalType(): string | null {
+  if (forcedLoginType) return forcedLoginType;
+  if (typeof window !== "undefined") {
+    const { pathname, hostname } = window.location;
+    if (tenantSlugFromHost(hostname) != null && pathname.startsWith("/admin")) {
+      return "retreat";
+    }
+  }
+  return getPortalType();
+}
+
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  const portalType = getPortalType();
+  const portalType = currentPortalType();
   if (portalType) {
     return localStorage.getItem(storageKey(portalType));
-  }
-  if (forcedLoginType) {
-    return localStorage.getItem(storageKey(forcedLoginType));
   }
   return null;
 }
@@ -62,7 +78,7 @@ export function clearTokens() {
 
 function getLoginType(): string | null {
   if (typeof window === "undefined") return null;
-  return getPortalType() ?? forcedLoginType;
+  return currentPortalType();
 }
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -97,7 +113,16 @@ async function attemptRefresh(): Promise<boolean> {
 
 function redirectToLogin(loginType: string | null): never {
   clearTokens();
-  const target = loginType === "admin" ? "/admin/login" : "/login";
+  // On tenant hosts the visible "/login" page doesn't exist — the tenant
+  // admin login lives at the visible "/admin/login" (rewritten internally).
+  const target =
+    loginType === "admin"
+      ? "/admin/login"
+      : loginType === "retreat" &&
+          typeof window !== "undefined" &&
+          tenantSlugFromHost(window.location.hostname) != null
+        ? "/admin/login"
+        : "/login";
   if (typeof window !== "undefined") {
     window.location.href = target;
   }

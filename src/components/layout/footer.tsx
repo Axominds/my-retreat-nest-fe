@@ -116,6 +116,9 @@ export function Footer() {
 
   if (pathname.startsWith("/admin")) return null;
 
+  // Tenant subdomains render their own branded chrome (see sites layout).
+  if (pathname.startsWith("/sites")) return null;
+
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetEmail =

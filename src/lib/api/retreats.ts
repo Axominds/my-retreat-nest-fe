@@ -102,6 +102,34 @@ export async function getRetreat(id: number, params?: { is_published?: boolean }
   return response.data;
 }
 
+export interface ValidatedTenant {
+  retreat_id: number;
+  slug: string;
+  name: string;
+}
+
+/**
+ * Resolves the current tenant via `GET /retreats/validate/`, which reads the
+ * tenant purely from request headers (Origin/Referer/Host). Browser fetches
+ * send Origin automatically for cross-origin calls; server-side callers must
+ * forward the inbound host via `x-forwarded-host` (undici forbids overriding
+ * `host`, and server fetches send no Origin by default). Throws ApiError-like
+ * Error with `status` on failure so callers can branch on 404.
+ */
+export async function validateRetreatTenant(forwardedHost?: string): Promise<ValidatedTenant> {
+  const { API_BASE_URL } = await import("@/lib/constants");
+  const { ApiError } = await import("@/lib/api/client");
+  const response = await fetch(`${API_BASE_URL}/retreats/validate/`, {
+    headers: forwardedHost ? { "x-forwarded-host": forwardedHost } : undefined,
+    cache: "no-store",
+  });
+  const json = await response.json();
+  if (!response.ok) {
+    throw new ApiError(response.status, json);
+  }
+  return json.data as ValidatedTenant;
+}
+
 export async function createRetreat(payload: RetreatPayload): Promise<Retreat> {
   const response = await post<Retreat>("/retreats/", payload, { auth: true });
   return response.data;

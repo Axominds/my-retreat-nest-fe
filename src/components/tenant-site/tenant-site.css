@@ -1,0 +1,60 @@
+/* Standalone tenant-site design system (premium editorial).
+   Everything is scoped under .tenant-site so marketplace tokens in
+   globals.css can never bleed in or out. Only backend contracts
+   (lib/api, types) are shared — no marketplace components. */
+
+.tenant-site {
+  --ts-paper: #faf7f1;
+  --ts-paper-deep: #f3ede1;
+  --ts-card: #fffdf8;
+  --ts-ink: #1c1917;
+  --ts-ink-soft: #44403c;
+  --ts-muted: #78716c;
+  --ts-faint: #a8a29e;
+  --ts-line: #e7e0d2;
+  --ts-accent: #2f4a3c;
+  --ts-accent-deep: #233829;
+  --ts-accent-ink: #f5f1e6;
+  --ts-gold: #b45309;
+  --ts-radius: 0.375rem;
+
+  --font-ts-display: var(--ts-display-font, "Fraunces", Georgia, "Times New Roman", serif);
+  --font-ts-body: var(--ts-body-font, "Inter", ui-sans-serif, system-ui, sans-serif);
+
+  background: var(--ts-paper);
+  color: var(--ts-ink);
+  font-family: var(--font-ts-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tenant-site .ts-display {
+  font-family: var(--font-ts-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.tenant-site .ts-overline {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.tenant-site .ts-hairline {
+  border-color: var(--ts-line);
+}
+
+.tenant-site .ts-dropcap::first-letter {
+  font-family: var(--font-ts-display);
+  font-size: 3.4em;
+  line-height: 0.85;
+  float: left;
+  padding-right: 0.12em;
+  padding-top: 0.05em;
+  color: var(--ts-accent);
+}
+
+.tenant-site ::selection {
+  background: var(--ts-accent);
+  color: var(--ts-accent-ink);
+}

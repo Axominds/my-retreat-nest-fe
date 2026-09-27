@@ -33,6 +33,9 @@ export function Header() {
 
   if (pathname === "/admin/login") return null;
 
+  // Tenant subdomains render their own branded chrome (see sites layout).
+  if (pathname.startsWith("/sites")) return null;
+
   const isAdmin = pathname.startsWith("/admin");
   const isRetreatDetail = /^\/retreats\/\d+/.test(pathname);
   const overlay = isRetreatDetail && !scrolled;

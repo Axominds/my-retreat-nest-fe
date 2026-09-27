@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { REFRESH_TOKEN_COOKIE_NAME, ADMIN_REFRESH_TOKEN_COOKIE_NAME } from "@/lib/constants";
+import { REFRESH_TOKEN_COOKIE_NAME, ADMIN_REFRESH_TOKEN_COOKIE_NAME, RETREAT_REFRESH_TOKEN_COOKIE_NAME } from "@/lib/constants";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
@@ -13,11 +13,14 @@ export async function POST(request: Request) {
   }
   if (loginType === "admin") {
     cookieStore.delete(ADMIN_REFRESH_TOKEN_COOKIE_NAME);
+  } else if (loginType === "retreat") {
+    cookieStore.delete(RETREAT_REFRESH_TOKEN_COOKIE_NAME);
   } else if (loginType === "normal") {
     cookieStore.delete(REFRESH_TOKEN_COOKIE_NAME);
   } else {
     cookieStore.delete(REFRESH_TOKEN_COOKIE_NAME);
     cookieStore.delete(ADMIN_REFRESH_TOKEN_COOKIE_NAME);
+    cookieStore.delete(RETREAT_REFRESH_TOKEN_COOKIE_NAME);
   }
   return NextResponse.json({
     data: null,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { API_BASE_URL, REFRESH_TOKEN_COOKIE_NAME, ADMIN_REFRESH_TOKEN_COOKIE_NAME, COOKIE_MAX_AGE_DAYS } from "@/lib/constants";
+import { API_BASE_URL, refreshCookieName, COOKIE_MAX_AGE_DAYS } from "@/lib/constants";
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    const cookieName = login_type === "admin" ? ADMIN_REFRESH_TOKEN_COOKIE_NAME : REFRESH_TOKEN_COOKIE_NAME;
+    const cookieName = refreshCookieName(login_type);
     const cookieStore = await cookies();
     cookieStore.set(cookieName, data.data.refresh_token, {
       httpOnly: true,
