@@ -44,7 +44,11 @@ export function TenantHomepage({
     <>
       <Hero retreat={retreat} categoryName={categoryName} />
       <QuickFacts retreat={retreat} categoryName={categoryName} />
-      <Story name={retreat.name} description={retreat.description} />
+      <Story
+        name={retreat.name}
+        story={retreat.story}
+        description={retreat.description}
+      />
       <Gallery
         retreatId={retreat.retreat_id}
         galleryCategories={galleryCategories}

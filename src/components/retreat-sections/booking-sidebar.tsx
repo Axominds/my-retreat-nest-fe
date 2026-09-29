@@ -33,7 +33,7 @@ export function BookingSidebar({ retreat, price }: BookingSidebarProps) {
 
           <div className="p-5 space-y-4">
             <a
-              href={whatsappLink(retreat.phone, retreat.name)}
+              href={whatsappLink(retreat.name)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 h-12 w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30"

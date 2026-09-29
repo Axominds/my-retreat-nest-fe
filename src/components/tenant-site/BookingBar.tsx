@@ -18,7 +18,7 @@ export function BookingBar({ retreat }: { retreat: Retreat }) {
           </p>
         </div>
         <a
-          href={whatsappLink(retreat.phone, retreat.name)}
+          href={whatsappLink(retreat.name)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#2f4a3c] px-6 text-sm font-semibold text-[#f5f1e6]"

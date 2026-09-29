@@ -6,6 +6,7 @@ import { getCategories } from "@/lib/api/categories";
 import { API_BASE_URL } from "@/lib/constants";
 import { getGalleryCategories } from "@/lib/api/gallery-categories";
 import { resolveTenantContext } from "@/lib/tenant";
+import { stripHtml } from "@/lib/rich-text";
 import { getTenantHomepage } from "@/components/tenant-site/TenantHomepage";
 import { TenantChromeHeader, TenantChromeFooter } from "@/components/tenant-site/TenantChrome";
 
@@ -19,12 +20,17 @@ export async function generateMetadata({ params }: TenantHomePageProps): Promise
   if (!ctx) return {};
   const { retreat } = ctx;
   const ogImage = retreat.banner_image ? `${API_BASE_URL}${retreat.banner_image}` : undefined;
+  // Story/descriptions may contain HTML — meta tags need plain text.
+  const metaDescription =
+    stripHtml(retreat.story) ||
+    stripHtml(retreat.description) ||
+    `Discover ${retreat.name} on My Retreat Nest.`;
   return {
     title: `${retreat.name} — My Retreat Nest`,
-    description: retreat.description ?? `Discover ${retreat.name} on My Retreat Nest.`,
+    description: metaDescription,
     openGraph: {
       title: retreat.name,
-      description: retreat.description ?? undefined,
+      description: metaDescription,
       images: ogImage ? [ogImage] : undefined,
     },
   };

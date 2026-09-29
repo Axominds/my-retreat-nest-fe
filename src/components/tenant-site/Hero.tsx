@@ -53,7 +53,7 @@ export function Hero({ retreat, categoryName }: HeroProps) {
             </div>
             <div className="mt-8">
               <a
-                href={whatsappLink(retreat.phone, retreat.name)}
+                href={whatsappLink(retreat.name)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-[#f5f1e6] px-7 text-sm font-semibold text-[#1c1917] hover:bg-white transition-colors"

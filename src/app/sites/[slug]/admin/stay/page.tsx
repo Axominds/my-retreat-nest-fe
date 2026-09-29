@@ -418,6 +418,7 @@ export default function TenantAdminStayPage() {
         <Button
           variant="outline"
           className="shrink-0"
+          nativeButton={false}
           render={<Link href={`/sites/${slug}`} target="_blank" />}
         >
           <ExternalLink className="mr-2 h-4 w-4" />

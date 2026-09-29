@@ -58,3 +58,76 @@
   background: var(--ts-accent);
   color: var(--ts-accent-ink);
 }
+
+/* Formatted story HTML (WYSIWYG output). First-paragraph dropcap mirrors
+   the old .ts-dropcap treatment, which can't reach into nested markup. */
+.tenant-site .ts-richtext > *:first-child {
+  margin-top: 0;
+}
+
+.tenant-site .ts-richtext > *:last-child {
+  margin-bottom: 0;
+}
+
+.tenant-site .ts-richtext p {
+  margin: 0 0 1.1em;
+}
+
+.tenant-site .ts-richtext > p:first-child::first-letter {
+  font-family: var(--font-ts-display);
+  font-size: 3.4em;
+  line-height: 0.85;
+  float: left;
+  padding-right: 0.12em;
+  padding-top: 0.05em;
+  color: var(--ts-accent);
+}
+
+.tenant-site .ts-richtext h1,
+.tenant-site .ts-richtext h2,
+.tenant-site .ts-richtext h3 {
+  font-family: var(--font-ts-display);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 1.4em 0 0.6em;
+}
+
+.tenant-site .ts-richtext h1 { font-size: 1.75rem; }
+.tenant-site .ts-richtext h2 { font-size: 1.5rem; }
+.tenant-site .ts-richtext h3 { font-size: 1.25rem; }
+
+.tenant-site .ts-richtext ul,
+.tenant-site .ts-richtext ol {
+  margin: 0 0 1.1em;
+  padding-left: 1.5rem;
+}
+
+.tenant-site .ts-richtext ul { list-style-type: disc; }
+.tenant-site .ts-richtext ol { list-style-type: decimal; }
+
+.tenant-site .ts-richtext li { margin: 0.4em 0; }
+
+.tenant-site .ts-richtext a {
+  color: var(--ts-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tenant-site .ts-richtext blockquote {
+  margin: 0 0 1.1em;
+  padding-left: 1rem;
+  border-left: 2px solid var(--ts-gold);
+  font-style: italic;
+}
+
+/* Keep Leaflet's high internal z-indexes (controls/attribution ~1000)
+   contained below the sticky site header (z-50). The relative+z-0
+   classes on the map do most of the work; this caps stragglers. */
+.tenant-site .leaflet-container {
+  z-index: 0;
+}
+
+.tenant-site .leaflet-top,
+.tenant-site .leaflet-bottom {
+  z-index: 400;
+}

@@ -1,10 +1,18 @@
+import { SafeHtml } from "@/components/ui/safe-html";
+import { isHtml, plainTextToHtml } from "@/lib/rich-text";
+
 interface StoryProps {
   name: string;
-  description: string | null;
+  story: string | null;
+  /** Pre-split fallback for rows whose story hasn't been backfilled yet. */
+  description?: string | null;
 }
 
-export function Story({ name, description }: StoryProps) {
-  if (!description) return null;
+export function Story({ name, story, description }: StoryProps) {
+  const source = story ?? description;
+  if (!source) return null;
+  // Legacy plain-text stories are converted so paragraph breaks survive.
+  const html = isHtml(source) ? source : plainTextToHtml(source);
   return (
     <section id="story" className="scroll-mt-24">
       <div className="mx-auto max-w-2xl px-5 py-20 md:py-28">
@@ -13,9 +21,10 @@ export function Story({ name, description }: StoryProps) {
           Welcome to {name}
         </h2>
         <div className="mx-auto mt-6 h-px w-16 bg-[#b45309]/60" />
-        <p className="ts-dropcap mt-10 whitespace-pre-line text-[1.05rem] leading-[1.85] text-[#44403c]">
-          {description}
-        </p>
+        <SafeHtml
+          html={html}
+          className="ts-richtext mt-10 text-[1.05rem] leading-[1.85] text-[#44403c]"
+        />
       </div>
     </section>
   );

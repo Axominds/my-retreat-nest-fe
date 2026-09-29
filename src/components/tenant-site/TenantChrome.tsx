@@ -21,7 +21,7 @@ export function TenantChromeHeader({ retreat }: { retreat: Retreat }) {
           <a href="#visit" className="hover:text-[#1c1917] transition-colors">Visit</a>
         </nav>
         <a
-          href={whatsappLink(retreat.phone, retreat.name)}
+          href={whatsappLink(retreat.name)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex h-10 items-center gap-2 rounded-full bg-[#2f4a3c] px-5 text-sm font-semibold text-[#f5f1e6] hover:bg-[#233829] transition-colors"

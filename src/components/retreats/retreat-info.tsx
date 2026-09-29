@@ -2,6 +2,8 @@ import type { Retreat } from "@/types/retreat";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Globe, Mail, Phone, Banknote } from "lucide-react";
 import { formatCurrencyRange } from "@/lib/format-currency";
+import { SafeHtml } from "@/components/ui/safe-html";
+import { isHtml, plainTextToHtml } from "@/lib/rich-text";
 
 interface RetreatInfoProps {
   retreat: Retreat;
@@ -65,9 +67,14 @@ export function RetreatInfo({ retreat, categoryName }: RetreatInfoProps) {
       {retreat.description && (
         <section>
           <h2 className="text-lg font-semibold mb-3">About this retreat</h2>
-          <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
-            {retreat.description}
-          </div>
+          <SafeHtml
+            html={
+              isHtml(retreat.description)
+                ? retreat.description
+                : plainTextToHtml(retreat.description)
+            }
+            className="blog-content text-muted-foreground leading-relaxed"
+          />
         </section>
       )}
 

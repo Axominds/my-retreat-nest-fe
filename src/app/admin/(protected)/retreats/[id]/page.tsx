@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { resolveImageUrl } from "@/lib/constants";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Image, Users, Info, MapPin, Mail, Phone, Banknote, Globe, ExternalLink, Upload, X, Sparkles } from "lucide-react";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { GalleryManager } from "@/components/admin/gallery-manager";
 import { StaffManager } from "@/components/admin/staff-manager";
 import { AmenityChipSelector } from "@/components/admin/amenity-chip-selector";
@@ -49,7 +50,7 @@ export default function AdminRetreatDetailPage() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<Tab>("info");
   const [form, setForm] = useState({
-    name: "", slug: "", category_id: 0, description: "",
+    name: "", slug: "", category_id: 0, description: "", story: "",
     email: "", phone: "", address: "",
     latitude: "", longitude: "",
     budget_min: "", budget_max: "",
@@ -97,6 +98,7 @@ export default function AdminRetreatDetailPage() {
           slug: r.slug,
           category_id: r.category_id,
           description: r.description ?? "",
+          story: r.story ?? r.description ?? "",
           email: r.email,
           phone: r.phone,
           address: r.address ?? "",
@@ -165,6 +167,7 @@ export default function AdminRetreatDetailPage() {
         slug: form.slug,
         category_id: form.category_id,
         description: form.description || null,
+        story: form.story || null,
         email: form.email,
         phone: form.phone,
         address: form.address || null,
@@ -588,6 +591,20 @@ export default function AdminRetreatDetailPage() {
                     value={form.description}
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Short summary for the marketplace.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="retreat-story">Story</Label>
+                  <RichTextEditor
+                    id="retreat-story"
+                    value={form.story}
+                    onChange={(html) => setForm((f) => ({ ...f, story: html }))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Long-form story for the tenant site.
+                  </p>
                 </div>
 
               </CardContent>

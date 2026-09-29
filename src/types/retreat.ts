@@ -4,6 +4,7 @@ export interface Retreat {
   retreat_id: number;
   name: string;
   description: string | null;
+  story: string | null;
   category_id: number;
   slug: string;
   social_links: Record<string, unknown>;

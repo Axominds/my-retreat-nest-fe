@@ -9,6 +9,12 @@ export const ROOT_DOMAIN =
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+/** Platform WhatsApp number (digits only, e.g. "9779843529785") that receives
+ *  all booking/enquiry chats instead of individual tenant numbers. */
+export const PLATFORM_WHATSAPP_NUMBER = (
+  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "9779843529785"
+).replace(/\D/g, "");
+
 export const REFRESH_TOKEN_COOKIE_NAME = "refresh_token_normal";
 export const ADMIN_REFRESH_TOKEN_COOKIE_NAME = "refresh_token_admin";
 export const RETREAT_REFRESH_TOKEN_COOKIE_NAME = "refresh_token_retreat";

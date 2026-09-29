@@ -31,7 +31,7 @@ export function Visit({ retreat }: { retreat: Retreat }) {
           Finding your way here
         </h2>
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="overflow-hidden rounded-[var(--ts-radius)] border ts-hairline lg:col-span-3">
+          <div className="relative z-0 isolate overflow-hidden rounded-[var(--ts-radius)] border ts-hairline lg:col-span-3">
             <TenantMap
               latitude={retreat.latitude}
               longitude={retreat.longitude}
@@ -69,7 +69,7 @@ export function Visit({ retreat }: { retreat: Retreat }) {
             </div>
             <div className="mt-8 flex flex-col gap-3">
               <a
-                href={whatsappLink(retreat.phone, retreat.name)}
+                href={whatsappLink(retreat.name)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#f5f1e6] text-sm font-semibold text-[#1c1917] hover:bg-white transition-colors"

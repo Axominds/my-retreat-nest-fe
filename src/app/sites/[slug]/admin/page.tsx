@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -50,6 +51,7 @@ type FormState = {
   name: string;
   category_id: number;
   description: string;
+  story: string;
   email: string;
   phone: string;
   address: string;
@@ -68,6 +70,7 @@ function toFormState(r: Retreat): FormState {
     name: r.name,
     category_id: r.category_id,
     description: r.description ?? "",
+    story: r.story ?? r.description ?? "",
     email: r.email,
     phone: r.phone,
     address: r.address ?? "",
@@ -174,6 +177,7 @@ export default function TenantAdminOverviewPage() {
       let updated = await updateRetreat(retreatId, {
         name: form.name.trim(),
         description: form.description || null,
+        story: form.story || null,
         category_id: form.category_id || undefined,
         email: form.email,
         phone: form.phone,
@@ -292,6 +296,7 @@ export default function TenantAdminOverviewPage() {
         <Button
           variant="outline"
           className="shrink-0"
+          nativeButton={false}
           render={<Link href={`/sites/${slug}`} target="_blank" />}
         >
           <ExternalLink className="mr-2 h-4 w-4" />
@@ -360,10 +365,22 @@ export default function TenantAdminOverviewPage() {
                 id="ov-description"
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
-                rows={5}
+                rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                Appears on your site and in marketplace search results.
+                Short summary shown in marketplace listings and search results.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ov-story">Story</Label>
+              <RichTextEditor
+                id="ov-story"
+                value={form.story}
+                onChange={(html) => set("story", html)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your long-form story on your site. Formatting carries over.
               </p>
             </div>
 

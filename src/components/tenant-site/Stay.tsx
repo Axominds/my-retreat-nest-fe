@@ -1,12 +1,17 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   BedDouble,
   Check,
   Clock,
+  Expand,
   Maximize2,
   MessageSquare,
   Moon,
   Sparkles,
   Users,
+  X,
 } from "lucide-react";
 import type { Retreat } from "@/types/retreat";
 import type { RetreatPackage, RoomType } from "@/types/retreat-offerings";
@@ -22,16 +27,73 @@ interface StaySectionProps {
   packages: RetreatPackage[];
 }
 
+/**
+ * Single-photo fullscreen viewer for a room card image. Mirrors the
+ * PhotoLightbox overlay (z-80, Esc/backdrop close, scroll lock) but stays
+ * local to Stay.tsx since room photos are plain URL strings, not gallery items.
+ */
+function RoomImageViewer({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt}
+      className="fixed inset-0 z-[80] flex flex-col bg-black/95"
+      onClick={onClose}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-4 px-4 py-4 md:px-6">
+        <span className="truncate text-sm font-medium text-white/80">{alt}</span>
+        <button
+          type="button"
+          aria-label="Close photo viewer"
+          onClick={onClose}
+          className="shrink-0 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <figure
+        className="relative min-h-0 flex-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="absolute inset-0 h-full w-full px-4 object-contain pb-6 md:px-10"
+        />
+      </figure>
+    </div>
+  );
+}
+
 function RoomCard({
   room,
   image,
   retreatName,
-  phone,
 }: {
   room: RoomType;
   image?: string;
   retreatName: string;
-  phone: string | null;
 }) {
   const signature = room.is_featured;
   const amenities = splitList(room.amenities);
@@ -39,6 +101,7 @@ function RoomCard({
   // Only render the metadata row when the manager actually filled something in.
   const hasMeta =
     room.size_sqm != null || room.max_guests != null || !!room.bed_configuration;
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   return (
     <li
@@ -47,12 +110,39 @@ function RoomCard({
       }`}
     >
       {image ? (
-        <img
-          src={image}
-          alt={room.name}
-          loading="lazy"
-          className="h-44 w-full object-cover"
-        />
+        <>
+          <button
+            type="button"
+            onClick={() => setViewerOpen(true)}
+            aria-label={`View photo of ${room.name}`}
+            aria-haspopup="dialog"
+            className="group/image relative block w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/80"
+          >
+            <img
+              src={image}
+              alt={room.name}
+              loading="lazy"
+              className="h-44 w-full object-cover transition-transform duration-500 group-hover/image:scale-[1.03]"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 bg-black/0 transition-colors group-hover/image:bg-black/15"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur transition-opacity group-hover/image:opacity-100 group-focus-visible:opacity-100"
+            >
+              <Expand className="h-4 w-4" />
+            </span>
+          </button>
+          {viewerOpen && (
+            <RoomImageViewer
+              src={image}
+              alt={room.name}
+              onClose={() => setViewerOpen(false)}
+            />
+          )}
+        </>
       ) : (
         <div
           aria-hidden="true"
@@ -155,7 +245,7 @@ function RoomCard({
             )}
           </p>
           <a
-            href={whatsappLink(phone, retreatName, room.name)}
+            href={whatsappLink(retreatName, room.name)}
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors ${
@@ -176,11 +266,9 @@ function RoomCard({
 function PackageRow({
   pkg,
   retreatName,
-  phone,
 }: {
   pkg: RetreatPackage;
   retreatName: string;
-  phone: string | null;
 }) {
   const includes = splitList(pkg.includes);
   const price = formatPrice(pkg.price);
@@ -227,7 +315,7 @@ function PackageRow({
           {price && <span className="text-xs text-[#78716c]">per person</span>}
         </p>
         <a
-          href={whatsappLink(phone, retreatName, pkg.name)}
+          href={whatsappLink(retreatName, pkg.name)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-[#2f4a3c]/30 px-5 text-sm font-semibold text-[#2f4a3c] transition-colors hover:bg-[#2f4a3c] hover:text-[#f5f1e6]"
@@ -275,7 +363,6 @@ export function Stay({ retreat, galleryImages, roomTypes, packages }: StaySectio
                     (galleryImages.length > 0 ? galleryImages[i % galleryImages.length] : undefined)
                   }
                   retreatName={retreat.name}
-                  phone={retreat.phone}
                 />
               ))}
             </ul>
@@ -331,7 +418,7 @@ export function Stay({ retreat, galleryImages, roomTypes, packages }: StaySectio
                   )}
                 </p>
                 <a
-                  href={whatsappLink(retreat.phone, retreat.name, highlight.name)}
+                  href={whatsappLink(retreat.name, highlight.name)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-[#f5f1e6] px-6 text-sm font-semibold text-[#1c1917] transition-colors hover:bg-white"
@@ -354,7 +441,6 @@ export function Stay({ retreat, galleryImages, roomTypes, packages }: StaySectio
                   key={pkg.retreat_package_id}
                   pkg={pkg}
                   retreatName={retreat.name}
-                  phone={retreat.phone}
                 />
               ))}
             </ul>

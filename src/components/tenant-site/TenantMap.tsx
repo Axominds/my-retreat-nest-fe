@@ -28,7 +28,7 @@ export function TenantMap({
       center={position}
       zoom={14}
       scrollWheelZoom={false}
-      className="h-80 w-full lg:h-full lg:min-h-[420px]"
+      className="relative z-0 h-80 w-full lg:h-full lg:min-h-[420px]"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

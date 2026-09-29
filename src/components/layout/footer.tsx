@@ -209,17 +209,17 @@ export function Footer() {
                   <Mail className="h-3.5 w-3.5" />
                 </span>
                 <a
-                  href="mailto:hello@myretreatnest.com"
+                  href="mailto:info@axominds.com"
                   className="transition-colors hover:text-foreground"
                 >
-                  hello@myretreatnest.com
+                  info@axominds.com
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Phone className="h-3.5 w-3.5" />
                 </span>
-                +977 1 123 4567
+                +977 9843529785
               </li>
             </ul>
 

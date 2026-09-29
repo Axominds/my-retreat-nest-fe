@@ -1,5 +1,7 @@
 import { Check, Info } from "lucide-react";
 import type { Amenity } from "@/types/amenity";
+import { SafeHtml } from "@/components/ui/safe-html";
+import { isHtml, plainTextToHtml } from "@/lib/rich-text";
 
 export function AmenitiesSection({ amenities }: { amenities: Amenity[] }) {
   if (!amenities || amenities.length === 0) return null;
@@ -38,9 +40,10 @@ export function AboutSection({ description }: { description: string | null }) {
           About this retreat
         </h2>
       </div>
-      <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
-        {description}
-      </div>
+      <SafeHtml
+        html={isHtml(description) ? description : plainTextToHtml(description)}
+        className="blog-content text-muted-foreground leading-relaxed"
+      />
     </section>
   );
 }

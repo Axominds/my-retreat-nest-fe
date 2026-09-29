@@ -10,6 +10,7 @@ export interface RetreatListResponse {
 export interface RetreatPayload {
   name: string;
   description?: string | null;
+  story?: string | null;
   category_id: number;
   slug: string;
   social_links?: Record<string, unknown>;
